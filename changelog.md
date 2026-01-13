@@ -1,3 +1,7 @@
+1.29.0
+------
+- fix: Add back the article tweet field #628 (@plhery)
+
 1.28.0
 ------
 - Fix coordiante types #626 (@jiahuijiang)
