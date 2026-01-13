@@ -183,6 +183,11 @@ export type NoteTweetEntitiesV2 = Omit<TweetEntitiesV2, 'annotations'>;
 
 export type TTweetReplySettingsV2 = 'mentionedUsers' | 'following' | 'everyone';
 
+export interface TweetArticleV2 {
+  cover_media?: MediaObjectV2;
+  media_entities?: MediaObjectV2[];
+}
+
 export interface SendTweetV2Params {
   direct_message_deep_link?: string;
   for_super_followers_only?: 'True' | 'False';
@@ -238,6 +243,7 @@ export interface TweetV2 {
   source?: string;
   note_tweet?: NoteTweetV2;
   community_id?: string;
+  article?: TweetArticleV2;
 }
 
 export interface ApiV2Includes {
