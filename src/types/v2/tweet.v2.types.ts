@@ -39,11 +39,13 @@ export interface TweetV2UserTimelineParams extends TweetV2PaginableTimelineParam
 }
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface TweetV2HomeTimelineParams extends TweetV2UserTimelineParams {}
+export interface TweetV2HomeTimelineParams extends TweetV2UserTimelineParams { }
 
-export type TTweetv2Expansion = 'attachments.poll_ids' | 'attachments.media_keys'
+export type TTweetv2Expansion = 'attachments.poll_ids' | 'attachments.media_keys' | 'attachments.media_source_tweet'
   | 'author_id' | 'referenced_tweets.id' | 'in_reply_to_user_id' | 'edit_history_tweet_ids'
-  | 'geo.place_id' | 'entities.mentions.username' | 'referenced_tweets.id.author_id';
+  | 'geo.place_id' | 'entities.mentions.username' | 'referenced_tweets.id.author_id'
+  | 'article.cover_media' | 'article.media_entities'
+  | 'entities.note.mentions.username' | 'referenced_tweets.id.attachments.media_keys';
 export type TTweetv2MediaField = keyof MediaObjectV2;
 export type TTweetv2PlaceField = keyof PlaceV2;
 export type TTweetv2PollField = keyof PollV2;
