@@ -8,6 +8,15 @@ import { PaginableCountMetaV2 } from './shared.v2.types';
 
 export type TUserV2Expansion = 'pinned_tweet_id';
 
+/** Connection status types for relationship between users */
+export type TConnectionStatusV2 =
+  | 'follow_request_received'
+  | 'follow_request_sent'
+  | 'blocking'
+  | 'followed_by'
+  | 'following'
+  | 'muting';
+
 // - Params -
 
 export interface UsersV2Params {
@@ -120,7 +129,7 @@ export interface UserV2 {
     media_count?: number;
   }
   pinned_tweet_id?: string;
-  connection_status?: string[];
+  connection_status?: TConnectionStatusV2[];
   most_recent_tweet_id?: string;
   affiliation?: {
     badge_url?: string;

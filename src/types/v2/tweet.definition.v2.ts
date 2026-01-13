@@ -1,4 +1,5 @@
 import type { UserV2 } from './user.v2.types';
+import type { CommunityV2 } from './community.v2.types';
 
 export interface PlaceV2 {
   full_name: string;
@@ -63,6 +64,7 @@ export interface ReferencedTweetV2 {
 export interface TweetAttachmentV2 {
   media_keys?: string[];
   poll_ids?: string[];
+  media_source_tweet_id?: string[];
 }
 
 export interface TweetGeoV2 {
@@ -196,10 +198,10 @@ export interface SendTweetV2Params {
   };
   media?: {
     media_ids?:
-      | [string]
-      | [string, string]
-      | [string, string, string]
-      | [string, string, string, string];
+    | [string]
+    | [string, string]
+    | [string, string, string]
+    | [string, string, string, string];
     tagged_user_ids?: string[];
   };
   poll?: {
@@ -252,4 +254,5 @@ export interface ApiV2Includes {
   places?: PlaceV2[];
   media?: MediaObjectV2[];
   polls?: PollV2[];
+  communities?: CommunityV2[];
 }
