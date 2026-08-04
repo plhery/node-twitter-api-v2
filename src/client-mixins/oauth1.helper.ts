@@ -94,14 +94,13 @@ export class OAuth1Helper {
   }
 
   protected getNonce() {
-    const wordCharacters = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-
-    for (let i = 0; i < this.nonceLength; i++) {
-      result += wordCharacters[Math.trunc(Math.random() * wordCharacters.length)];
-    }
-
-    return result;
+    return crypto
+      .randomBytes(Math.ceil(this.nonceLength * 3 / 4))
+      .toString('base64')
+      .replace(/=/g, '')
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .slice(0, this.nonceLength);
   }
 
   protected getTimestamp() {
