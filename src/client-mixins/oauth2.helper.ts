@@ -20,12 +20,11 @@ export class OAuth2Helper {
   }
 
   static generateRandomString(length: number) {
-    let text = '';
-    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
-    for (let i = 0; i < length; i++) {
-      text += possible[Math.floor(Math.random() * possible.length)];
-    }
-    return text;
+    return this.escapeBase64Url(
+      crypto
+        .randomBytes(Math.ceil(length * 3 / 4))
+        .toString('base64'),
+    ).slice(0, length);
   }
 
   private static escapeBase64Url(string: string) {
