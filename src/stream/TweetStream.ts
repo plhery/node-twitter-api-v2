@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events';
 import type { IncomingMessage, ClientRequest } from 'http';
 import type { Readable } from 'stream';
+import { StringDecoder } from 'string_decoder';
 import RequestHandlerHelper from '../client-mixins/request-handler.helper';
 import { ETwitterStreamEvent } from '../types';
 import { TRequestFullStreamData } from '../types/request-maker.mixin.types';
@@ -112,14 +113,20 @@ export class TweetStream<T = any> extends EventEmitter {
     // Usually, connection should not be closed by Twitter!
     this.res.on('close', () => errorHandler(new Error('Connection closed by Twitter.')));
 
-    this.res.on('data', (chunk: Buffer) => {
+    // A multi-byte UTF-8 character can be split across two chunks,
+    // so chunks must go through a stateful decoder (one per connection) instead of being decoded one by one.
+    const decoder = new StringDecoder('utf8');
+
+    this.res.on('data', (chunk: Buffer | string) => {
       this.resetKeepAliveTimeout();
 
-      if (chunk.toString() === '\r\n') {
+      const text = decoder.write(chunk as Buffer);
+
+      if (text === '\r\n') {
         return this.emit(ETwitterStreamEvent.DataKeepAlive);
       }
 
-      this.parser.push(chunk.toString());
+      this.parser.push(text);
     });
 
     // Starts the keep alive timeout
