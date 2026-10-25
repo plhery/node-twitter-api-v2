@@ -171,7 +171,7 @@ That happens when an older connection is still open: another instance of your ap
 
 - Close the stream (`close()` or `destroy()`) when you stop using it, f.e. on shutdown.
 - Create one stream and let it reconnect, instead of creating a new stream after each disconnection.
-- X's [Connections API](https://docs.x.com/x-api/connections/introduction) closes the open connections of your app: `await client.v2.delete('connections/all')`, with your Bearer OAuth2 client.
+- `await client.v2.terminateAllStreamConnections()`, with your Bearer OAuth2 client, closes the open connections of your app (see [Streaming connections](#streaming-connections)).
 
 ### Bots that reply
 
