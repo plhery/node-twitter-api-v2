@@ -45,6 +45,9 @@ await homeTimeline.fetchNext();
 ```
 Items will be added to current instance and next calls to `.tweets` or `Symbol.iterator` will include **previously fetched tweets and new tweets**.
 
+Once the paginator is `.done`, `.fetchNext()` and `.fetchLast()` do nothing and send no request.
+Search paginators (`.search()` and `.searchAll()`) still send one, to ask for older tweets with `until_id`.
+
 ## Get next page as a new instance
 
 Alternatively, you can use `.next()` to fetch a next page and get it as a separator instance.
@@ -52,6 +55,7 @@ Alternatively, you can use `.next()` to fetch a next page and get it as a separa
 const timelinePage2 = await homeTimeline.next();
 ```
 Next page items will be only available on `timelinePage2.tweets` or through `timelinePage2[Symbol.iterator]`. New instance will **not** have items of previous page.
+If there is no next page, `.next()` gives an empty instance, without a request.
 
 ## Fetch until rate limit hits
 
