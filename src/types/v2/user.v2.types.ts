@@ -102,7 +102,7 @@ export interface UserV2 {
   confirmed_email?: string;
   entities?: {
     url?: { urls: UrlEntity[] };
-    description: {
+    description?: {
       urls?: UrlEntity[];
       hashtags?: HashtagEntity[];
       cashtags?: CashtagEntity[];

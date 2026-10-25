@@ -101,7 +101,7 @@ export interface TweetEntityUrlV2 {
   url: string;
   expanded_url: string;
   display_url: string;
-  unwound_url: string;
+  unwound_url?: string;
   title?: string;
   description?: string;
   status?: string;
@@ -129,11 +129,11 @@ export interface TweetEntityMentionV2 {
 }
 
 export interface TweetEntitiesV2 {
-  annotations: TweetEntityAnnotationsV2[];
-  urls: TweetEntityUrlV2[];
-  hashtags: TweetEntityHashtagV2[];
-  cashtags: TweetEntityHashtagV2[];
-  mentions: TweetEntityMentionV2[];
+  annotations?: TweetEntityAnnotationsV2[];
+  urls?: TweetEntityUrlV2[];
+  hashtags?: TweetEntityHashtagV2[];
+  cashtags?: TweetEntityHashtagV2[];
+  mentions?: TweetEntityMentionV2[];
 }
 
 export interface TweetWithheldInfoV2 {
