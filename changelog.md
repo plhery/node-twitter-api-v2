@@ -1,3 +1,10 @@
+1.29.2
+------
+- fix(paginators): keep oldest_id when fetchNext() returns an empty page #638 (@plhery)
+- fix(stream): don't drop a payload whose CRLF separator arrives alone #638 (@plhery)
+- fix(paginators): keep the cursor when previous() returns an empty page #637 (@OsamaAnsar)
+- fix(stream): decode chunks with a stateful UTF-8 decoder #636 (@OsamaAnsar)
+
 1.29.1
 ------
 - Fix lint and run it in CI #635 (@plhery)
