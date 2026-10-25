@@ -99,7 +99,7 @@ export class ApiRequestError extends ApiError implements TwitterApiRequestError 
   }
 
   get requestError(): Error {
-    return this._options.requestError;
+    return this._options.error;
   }
 
   toJSON() {
