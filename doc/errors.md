@@ -3,7 +3,7 @@
 When a request fails, you can catch a `ApiRequestError`, a `ApiPartialResponseError` or a `ApiResponseError` object (all instances of `Error`), that contain useful information about whats happening.
 
 - An `ApiRequestError` happens when the request **failed to sent** (network error, bad URL...).
-- An `ApiPartialResponseError` happens the response has been partially sent, but the connection is closed (by you, the OS or Twitter).
+- An `ApiPartialResponseError` happens the response has been partially sent, but the connection is closed (by you, the OS or Twitter), or when the response body can't be parsed or decompressed.
 - An `ApiResponseError` happens when **Twitter replies with an error**.
 
 Some properties are common for both objects:
