@@ -18,6 +18,8 @@ export class UserSearchV1Paginator extends TwitterPaginator<UserV1[], UserSearch
 
     if (isNextPage) {
       this._realData.push(...result);
+      // Remember the page just stored, so the next fetchNext() asks for the one after it
+      this._queryParams = { ...this._queryParams, page: Number(this._queryParams.page ?? '1') + 1 };
     }
   }
 
