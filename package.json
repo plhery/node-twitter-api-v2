@@ -34,7 +34,10 @@
     "prepublish": "npm run build",
     "release": "node release.mjs"
   },
-  "repository": "github:plhery/node-twitter-api-v2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/plhery/node-twitter-api-v2.git"
+  },
   "author": "Paul-Louis Hery <paullouis.hery+twitterapi@gmail.com> (https://x.com/plhery)",
   "license": "Apache-2.0",
   "files": [
@@ -55,6 +58,6 @@
     "typescript": "^4.2.4"
   },
   "bugs": {
-    "url": "https://github.com/plhery/node-twitter-api/issues"
+    "url": "https://github.com/plhery/node-twitter-api-v2/issues"
   }
 }
