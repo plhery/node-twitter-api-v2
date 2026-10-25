@@ -1,8 +1,9 @@
 import 'mocha';
 import { expect } from 'chai';
+import * as net from 'net';
 import { PassThrough } from 'stream';
 import { gzipSync } from 'zlib';
-import { ApiPartialResponseError } from '../src';
+import { ApiPartialResponseError, ApiRequestError } from '../src';
 import RequestHandlerHelper from '../src/client-mixins/request-handler.helper';
 
 describe('Request handler response decompression (offline: no network or credentials needed)', () => {
@@ -48,5 +49,25 @@ describe('Request handler response decompression (offline: no network or credent
     const error = await response.then(() => null, (e: Error) => e);
     expect(error).to.be.instanceOf(ApiPartialResponseError);
     expect(error!.message).to.include('connection abruptly closed');
+  });
+});
+
+describe('Request handler errors (offline: no network or credentials needed)', () => {
+  /** A local port nothing listens on. */
+  function closedPort() {
+    return new Promise<number>(resolve => {
+      const server = net.createServer().listen(0, '127.0.0.1', () => {
+        const { port } = server.address() as net.AddressInfo;
+        server.close(() => resolve(port));
+      });
+    });
+  }
+
+  it('Should expose the error that made the request fail', async () => {
+    const helper = new RequestHandlerHelper<any>({ url: new URL(`https://127.0.0.1:${await closedPort()}/2/tweets`), options: {}, compression: true });
+
+    const error = await helper.makeRequest().then(() => null, (e: Error) => e);
+    expect(error).to.be.instanceOf(ApiRequestError);
+    expect((error as ApiRequestError).requestError).to.include({ code: 'ECONNREFUSED' });
   });
 });
