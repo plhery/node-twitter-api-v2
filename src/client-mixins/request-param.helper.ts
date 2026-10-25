@@ -169,10 +169,17 @@ export class RequestParamHelpers {
    */
   static applyRequestParametersToUrl(url: URL, parameters: TRequestQuery) {
     url.pathname = url.pathname.replace(/:([A-Z_-]+)/ig, (fullMatch, paramName: string) => {
-      if (parameters[paramName] !== undefined) {
-        return String(parameters[paramName]);
+      if (parameters[paramName] === undefined) {
+        return fullMatch;
       }
-      return fullMatch;
+
+      // Encoded, so that a value like '../../tweets/1' can't change the endpoint.
+      // '.' and '..' would still move up the path, even encoded
+      const value = String(parameters[paramName]);
+      if (value === '.' || value === '..') {
+        throw new Error(`Invalid value for URL parameter ${paramName}: ${value}`);
+      }
+      return encodeURIComponent(value);
     });
 
     return url;
