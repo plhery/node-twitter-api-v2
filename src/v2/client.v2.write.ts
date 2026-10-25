@@ -138,13 +138,19 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    *
    * @param media The media to upload: a file path, a file handle or descriptor, or a buffer.
    * Files are read chunk by chunk, so they're never fully loaded in memory. File handles and descriptors are left open.
-   * @param options Upload options including media type and category, and additional owners
+   * @param options Upload options including media type and category, and additional owners.
+   * `options.onProgress` is called after each uploaded chunk, with the bytes uploaded so far and the total size.
    * @param chunkSize Size of each chunk in bytes (default: 1MB)
    * @returns The media ID of the uploaded media
    */
   public async uploadMedia(
     media: TUploadableMedia,
-    options: { media_type: `${EUploadMimeType}` | EUploadMimeType; media_category?: MediaV2MediaCategory, additional_owners?: string[] },
+    options: {
+      media_type: `${EUploadMimeType}` | EUploadMimeType;
+      media_category?: MediaV2MediaCategory,
+      additional_owners?: string[],
+      onProgress?: (uploadedBytes: number, totalBytes: number) => void,
+    },
     chunkSize: number = 1024 * 1024
   ): Promise<string> {
     let media_category = options.media_category;
@@ -162,10 +168,11 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
     const fileHandle = await getFileHandle(media);
 
     try {
+      const totalBytes = await getFileSizeFromFileHandle(fileHandle);
       const initArguments: MediaV2UploadInitParams = {
         additional_owners: options.additional_owners,
         media_type: options.media_type,
-        total_bytes: await getFileSizeFromFileHandle(fileHandle),
+        total_bytes: totalBytes,
         media_category,
       };
 
@@ -189,6 +196,7 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
         };
 
         await this.post(`media/upload/${mediaId}/append`, appendArguments, { forceBodyMode: 'form-data' });
+        options.onProgress?.(offset, totalBytes);
       }
 
       const finalizeResponse = await this.post<MediaV2UploadResponse>(`media/upload/${mediaId}/finalize`);
