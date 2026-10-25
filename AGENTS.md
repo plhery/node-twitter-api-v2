@@ -27,9 +27,9 @@ Creating a GitHub release makes `.github/workflows/publish.yml` publish the pack
 
 1. `node release.mjs <patch|minor|major> --dry-run` shows the next version and its changelog entries. There is one entry per commit since the latest tag that belongs to a merged pull request, formatted as `- <subject> #<pr> (@<author>)`. Use patch for fixes, minor for new features or new API fields, and major for breaking changes.
 2. `node release.mjs <patch|minor|major>` first checks that master is clean and in sync with origin, then runs lint and build. It bumps `package.json` and `package-lock.json`, prepends the entries to `changelog.md`, and commits `upgrade to <version>`.
-3. `node release.mjs --publish` pushes master and creates the `<version>` release (tag, title and notes from the changelog), which starts the npm publish. `node release.mjs patch --publish` does steps 2 and 3 in one go.
+3. `node release.mjs --publish` pushes master and creates the `<version>` release (tag, title and notes from the changelog), which starts the npm publish. It then comments `Shipped in <version>` on every released pull request and on the issues they close. `node release.mjs patch --publish` does steps 2 and 3 in one go.
 
-Then follow the publish with `gh run list --workflow publish.yml` and check `npm view twitter-api-v2 version`.
+Then follow the publish with `gh run list --workflow publish.yml` and check `npm view twitter-api-v2 version`. Also look for open issues that the release fixes without being linked to a pull request. Comment on those by hand, explaining the fix.
 
 ## Good to know
 

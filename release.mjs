@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Prepares a release (version bump, changelog, "upgrade to <version>" commit) and publishes it
-// by pushing master and creating the GitHub release, which starts .github/workflows/publish.yml.
+// by pushing master and creating the GitHub release, which starts .github/workflows/publish.yml,
+// then comments "Shipped in <version>" on the released pull requests and the issues they close.
 // Requires an authenticated `gh` CLI.
 import { execFileSync } from 'node:child_process';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -131,6 +132,19 @@ function readReleaseNotes(version) {
   return entries.join('\n');
 }
 
+/** Comments "Shipped in <version>" on the released pull requests and on the issues they close. */
+function commentShipped(version, notes) {
+  const pulls = [...new Set([...notes.matchAll(/ #(\d+) \(@/g)].map(match => match[1]))];
+  const issues = pulls.flatMap(pull => run('gh', [
+    'pr', 'view', pull, '--repo', REPO, '--json', 'closingIssuesReferences', '--jq', '.closingIssuesReferences[].number',
+  ]).split('\n').filter(Boolean));
+
+  for (const number of [...pulls, ...new Set(issues)]) {
+    run('gh', ['api', `repos/${REPO}/issues/${number}/comments`, '--silent', '-f', `body=Shipped in ${version}`]);
+    console.log(`Commented "Shipped in ${version}" on #${number}.`);
+  }
+}
+
 function publishRelease() {
   checkRepository({ inSyncWithOrigin: false });
 
@@ -148,6 +162,7 @@ function publishRelease() {
   run('git', ['push', 'origin', BRANCH], { inherit: true });
   // Creating the release (and its tag) starts the npm publish workflow
   run('gh', ['release', 'create', version, '--repo', REPO, '--target', sha, '--title', version, '--notes', notes], { inherit: true });
+  commentShipped(version, notes);
 
   console.log(`Released ${version}. The npm publish workflow is starting: gh run list --repo ${REPO} --workflow publish.yml`);
 }
