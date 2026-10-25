@@ -5,16 +5,16 @@ twitter-api-v2: a strongly typed Twitter/X API v1.1 and v2 client for Node.js, p
 ## Layout
 
 - `src/`: library code. `v1/`, `v2/`, `v2-labs/`, `ads/`, `ads-sandbox/` hold the API clients, `paginators/` the paginators, `stream/` the streaming client, `types/` the API types.
-- `test/`: mocha + chai tests, in TypeScript.
+- `test/`: mocha + chai tests, in TypeScript. The ones that call the real X API are in `test/live/`.
 - `doc/`: user documentation. Update it when public behaviour changes.
 - `changelog.md`: written by `release.mjs` during a release, don't edit it in feature work.
 
 ## Checks
 
-- `npm run lint` and `npm run build` must pass. CI runs both, then `npm test`, on every push.
-- Most test files call the real X API. They need `CONSUMER_TOKEN`, `CONSUMER_SECRET`, `OAUTH_TOKEN` and `OAUTH_SECRET` (in `.env`), throw at import without them, and some calls are billed.
-- These test files run offline, without credentials: `helpers`, `oauth-helpers`, `rate-limit`, `stream.decoding`, `paginator.v1`, `paginator.v2`, `media.v2`, `request-handler`, `request-handler.socket`. Run them with `npm run mocha test/<name>.test.ts`. For new behaviour, prefer offline tests like these: a fake `instance.get` for paginators, a fake response stream for `TweetStream`, a fake `client.post` for requests, a local `http` server for the request handler (`https.request` accepts plain HTTP through an `http.Agent`).
-- Mocha 10 does not start on Node 26. Use Node 24, which is what CI uses.
+- `npm run lint`, `npm run build` and `npm test` must pass. CI runs them on Node 22, 24 and 26, on pushes to master and on pull requests.
+- `npm test` runs the tests of `test/`, offline and without credentials. Run a single file with `npm run mocha test/<name>.test.ts`.
+- Test new behaviour offline. `test/fake-x.ts` is a fake X API: its clients keep calling `https://api.x.com/...`, but their requests go to a local server that records them, checks OAuth 1.0a signatures like X does, and answers with the replies set with `on()`. Narrower fakes are fine too, like a fake `instance.get` for paginators or a fake response stream for `TweetStream`.
+- The tests of `test/live/` call the real X API and some calls are billed: ask before running them. They need `CONSUMER_TOKEN`, `CONSUMER_SECRET`, `OAUTH_TOKEN` and `OAUTH_SECRET` (in `.env`) and throw at import without them. Run them with `npm run test:live`, or with the Live tests workflow on GitHub, which uses the repository secrets.
 
 ## Commits and pull requests
 

@@ -1,6 +1,6 @@
 import 'mocha';
 import { expect } from 'chai';
-import { getRequestClient } from '../src/test/utils';
+import { getRequestClient } from '../../src/test/utils';
 
 // OAuth 1.0a
 const clientWithoutUser = getRequestClient();

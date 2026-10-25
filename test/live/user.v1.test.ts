@@ -1,7 +1,7 @@
 import 'mocha';
 import { expect } from 'chai';
-import { TwitterApi } from '../src';
-import { getUserClient } from '../src/test/utils';
+import { TwitterApi } from '../../src';
+import { getUserClient } from '../../src/test/utils';
 
 let userClient: TwitterApi;
 

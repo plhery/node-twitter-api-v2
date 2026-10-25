@@ -1,7 +1,7 @@
 import 'mocha';
 import { expect } from 'chai';
-import { EUploadMimeType, TwitterApi } from '../src';
-import { getUserClient } from '../src/test/utils';
+import { EUploadMimeType, TwitterApi } from '../../src';
+import { getUserClient } from '../../src/test/utils';
 import * as fs from 'fs';
 import * as path from 'path';
 
