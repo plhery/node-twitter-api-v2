@@ -26,7 +26,7 @@ import type {
 } from '../types';
 import TwitterApiv2LabsReadWrite from '../v2-labs/client.v2.labs.write';
 import { CreateDMConversationParams, PostDMInConversationParams, PostDMInConversationResult } from '../types/v2/dm.v2.types';
-import { MediaV2MediaCategory, MediaV2MetadataCreateParams, MediaV2MetadataCreateResult, MediaV2UploadAppendParams, MediaV2UploadInitParams, MediaV2UploadResponse } from '../types/v2/media.v2.types';
+import { MediaV2MediaCategory, MediaV2MetadataCreateParams, MediaV2MetadataCreateResult, MediaV2MimeType, MediaV2UploadAppendParams, MediaV2UploadInitParams, MediaV2UploadResponse } from '../types/v2/media.v2.types';
 import { getFileHandle, getFileSizeFromFileHandle, readNextPartOf } from '../v1/media-helpers.v1';
 
 /**
@@ -146,7 +146,7 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
   public async uploadMedia(
     media: TUploadableMedia,
     options: {
-      media_type: `${EUploadMimeType}` | EUploadMimeType;
+      media_type: MediaV2MimeType | `${EUploadMimeType}` | EUploadMimeType;
       media_category?: MediaV2MediaCategory,
       additional_owners?: string[],
       onProgress?: (uploadedBytes: number, totalBytes: number) => void,

@@ -16,6 +16,7 @@ import {
   StreamingV2UpdateRulesResult,
   TweetV2SingleResult,
   TweetV2PaginableTimelineParams,
+  TweetV2QuoteTweetsParams,
   TweetV2CountResult,
   TweetV2CountParams,
   TweetV2CountAllResult,
@@ -309,7 +310,7 @@ export default class TwitterApiv2ReadOnly extends TwitterApiSubClient {
    *
    * OAuth2 scopes: `users.read` `tweet.read`
    */
-  public async quotes(tweetId: string, options: Partial<TweetV2PaginableTimelineParams> = {}) {
+  public async quotes(tweetId: string, options: Partial<TweetV2QuoteTweetsParams> = {}) {
     const initialRq = await this.get<TweetV2PaginableTimelineResult>('tweets/:id/quote_tweets', options, {
       fullResponse: true,
       params: { id: tweetId },

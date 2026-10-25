@@ -32,7 +32,8 @@ export interface SpaceV2CreatorLookupParams extends SpaceV2FieldsParams {
 
 export interface SpaceV2SearchParams extends Partial<SpaceV2FieldsParams> {
   query: string;
-  state: TSpaceV2State;
+  /** Defaults to `'all'`. */
+  state?: TSpaceV2State | 'all';
   max_results?: number;
 }
 

@@ -6,12 +6,12 @@ import type { TTweetv2MediaField, TTweetv2PlaceField, TTweetv2PollField, TTweetv
 import type { TypeOrArrayOf } from '../shared.types';
 import { PaginableCountMetaV2 } from './shared.v2.types';
 
-export type TUserV2Expansion = 'pinned_tweet_id';
+export type TUserV2Expansion = 'pinned_tweet_id' | 'most_recent_tweet_id' | 'affiliation';
 
 // - Params -
 
 export interface UsersV2Params {
-  expansions: TypeOrArrayOf<TUserV2Expansion>;
+  expansions: TypeOrArrayOf<TUserV2Expansion> | string;
   'media.fields': TypeOrArrayOf<TTweetv2MediaField> | string;
   'place.fields': TypeOrArrayOf<TTweetv2PlaceField> | string;
   'poll.fields': TypeOrArrayOf<TTweetv2PollField> | string;
@@ -20,7 +20,7 @@ export interface UsersV2Params {
 }
 
 export interface UserV2TimelineParams {
-  expansions?: TypeOrArrayOf<TUserV2Expansion>;
+  expansions?: TypeOrArrayOf<TUserV2Expansion> | string;
   'media.fields'?: TypeOrArrayOf<TTweetv2MediaField> | string;
   'place.fields'?: TypeOrArrayOf<TTweetv2PlaceField> | string;
   'poll.fields'?: TypeOrArrayOf<TTweetv2PollField> | string;

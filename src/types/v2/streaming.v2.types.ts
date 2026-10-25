@@ -52,7 +52,9 @@ export interface StreamingV2DeleteRulesParams {
   /** Specifies the operation you want to perform on the rules. */
   delete: {
     /** Array of rule IDs, each one representing a rule already active in your stream. IDs must be submitted as strings. */
-    ids: string[];
+    ids?: string[];
+    /** Array of rule values (the rule text), to delete rules by value instead of ID. */
+    values?: string[];
   };
 }
 
