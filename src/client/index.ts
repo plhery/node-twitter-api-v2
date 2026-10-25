@@ -48,13 +48,15 @@ export class TwitterApi extends TwitterApiReadWrite {
 
   /* Static helpers */
   public static getErrors(error: any) {
-    if (typeof error !== 'object')
+    if (typeof error !== 'object' || !error)
       return [];
 
-    if (!('data' in error))
+    // A response with an empty or non-JSON body has no errors to give
+    const data = (error as TwitterApiError).data;
+    if (typeof data !== 'object' || !data)
       return [];
 
-    return (error as TwitterApiError).data.errors ?? [];
+    return data.errors ?? [];
   }
 
   /** Extract another image size than obtained in a `profile_image_url` or `profile_image_url_https` field of a user object. */

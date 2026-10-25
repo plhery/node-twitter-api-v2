@@ -80,8 +80,16 @@ export class RequestHandlerHelper<T> {
       .join(', ');
   }
 
-  protected formatV2Error(error: ErrorV2) {
-    return `${error.title}: ${error.detail} (see ${error.type})`;
+  protected formatV2Error({ title, detail, type }: Partial<ErrorV2>) {
+    // X often repeats the title as detail, like in 'Unauthorized: Unauthorized'
+    let message = [title, detail !== title ? detail : undefined].filter(Boolean).join(': ');
+
+    // 'about:blank' means that the HTTP code says it all
+    if (type && type !== 'about:blank') {
+      message += ` (see ${type})`;
+    }
+
+    return message;
   }
 
   protected createResponseError({ res, data, rateLimit, code }: IBuildErrorParams): ApiResponseError {
@@ -92,15 +100,14 @@ export class RequestHandlerHelper<T> {
 
     // Errors formatting.
     let errorString = `Request failed with code ${code}`;
-    if (data?.errors?.length) {
-      const errors = data.errors as (ErrorV1 | ErrorV2)[];
+    const errors = data?.errors as (ErrorV1 | ErrorV2)[] | undefined;
 
-      if (typeof errors[0] === 'object' && 'code' in errors[0]) {
-        errorString += ' - ' + this.formatV1Errors(errors as ErrorV1[]);
-      }
-      else {
-        errorString += ' - ' + this.formatV2Error(data as ErrorV2);
-      }
+    if (errors?.length && typeof errors[0] === 'object' && 'code' in errors[0]) {
+      errorString += ' - ' + this.formatV1Errors(errors as ErrorV1[]);
+    }
+    // v2 errors explain themselves in title and detail, with or without an errors array
+    else if (data?.title || data?.detail) {
+      errorString += ' - ' + this.formatV2Error(data as ErrorV2);
     }
 
     return new ApiResponseError(errorString, {
@@ -248,7 +255,7 @@ export class RequestHandlerHelper<T> {
     // Register the response data
     dataStream.on('data', chunk => this.responseData.push(chunk));
     dataStream.on('end', this.onResponseEndHandler.bind(this, resolve, reject));
-    dataStream.on('close', this.onResponseCloseHandler.bind(this, resolve, reject));
+    dataStream.on('close', this.onResponseCloseHandler.bind(this, reject));
 
     if (dataStream !== res) {
       // A body that can't be decompressed, or a response cut midway, never emits 'end' on the decompressor
@@ -296,21 +303,11 @@ export class RequestHandlerHelper<T> {
     });
   }
 
-  protected onResponseCloseHandler(resolve: TResponseResolver<T>, reject: TResponseRejecter) {
+  protected onResponseCloseHandler(reject: TResponseRejecter) {
     const res = this.res;
 
-    if (res.aborted) {
-      // Try to parse the request (?)
-      try {
-        this.getParsedResponse(this.res);
-        // Ok, try to resolve normally the request
-        return this.onResponseEndHandler(resolve, reject);
-      } catch (e) {
-        // Parse error, just drop with content
-        return reject(this.createPartialResponseError(e as Error, true));
-      }
-    }
-    if (!res.complete) {
+    // A cut response may still parse, as text, a buffer or even JSON, but it isn't the whole response
+    if (res.aborted || !res.complete) {
       return reject(this.createPartialResponseError(
         new Error('Response has been interrupted before response could be parsed.'),
         true,
