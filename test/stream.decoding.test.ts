@@ -93,4 +93,19 @@ describe('Tweet stream chunk decoding (offline: no network or credentials needed
     expect(texts).to.have.length(0);
     expect(keepAlives()).to.equal(1);
   });
+
+  it('Should not lose a payload whose CRLF separator arrives alone in the next chunk', () => {
+    const { stream, res, texts, parseErrors } = makeFakeStream();
+    const first = makePayload('first');
+    const second = makePayload('second');
+
+    // The separator of the first payload looks like a keep alive chunk
+    res.emit('data', first.subarray(0, first.length - 2));
+    res.emit('data', first.subarray(first.length - 2));
+    res.emit('data', second);
+    stream.destroy();
+
+    expect(parseErrors).to.have.length(0);
+    expect(texts).to.deep.equal(['first', 'second']);
+  });
 });

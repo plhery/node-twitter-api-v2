@@ -123,9 +123,11 @@ export class TweetStream<T = any> extends EventEmitter {
       const text = decoder.write(chunk as Buffer);
 
       if (text === '\r\n') {
-        return this.emit(ETwitterStreamEvent.DataKeepAlive);
+        this.emit(ETwitterStreamEvent.DataKeepAlive);
       }
 
+      // Always feed the parser: a lone CRLF can also be the separator of a payload received in previous chunks.
+      // When nothing is pending, the parser just skips it.
       this.parser.push(text);
     });
 
