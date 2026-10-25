@@ -1,14 +1,20 @@
 name: CI
 
-on: push
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
 
     strategy:
       matrix:
-        node-version: [24.x]
-      max-parallel: 1 # the streaming API can be called only once at a time
+        node-version: [22.x, 24.x, 26.x]
 
     steps:
       - uses: actions/checkout@v5
@@ -19,9 +25,5 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build
+      # Offline tests: the ones calling the real X API are run by hand, with the Live tests workflow
       - run: npm test
-        env:
-          CONSUMER_TOKEN: ${{ secrets.CONSUMER_TOKEN }}
-          CONSUMER_SECRET: ${{ secrets.CONSUMER_SECRET }}
-          OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
-          OAUTH_SECRET: ${{ secrets.OAUTH_SECRET }}

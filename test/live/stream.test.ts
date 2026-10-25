@@ -1,7 +1,7 @@
 import 'mocha';
 import { expect } from 'chai';
-import { TwitterApi, ETwitterStreamEvent } from '../src';
-import { getAppClient, getUserClient } from '../src/test/utils';
+import { TwitterApi, ETwitterStreamEvent } from '../../src';
+import { getAppClient, getUserClient } from '../../src/test/utils';
 
 // OAuth 1.0a
 const clientOauth = getUserClient();

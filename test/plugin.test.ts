@@ -1,6 +1,5 @@
 import 'mocha';
 import { expect } from 'chai';
-import { getUserKeys, getRequestKeys } from '../src/test/utils';
 import type {
   ITwitterApiClientPlugin,
   TwitterResponse,
@@ -9,6 +8,9 @@ import type {
   ITwitterApiAfterOAuth1RequestTokenHookArgs,
 } from '../src';
 import { TwitterApi } from '../src';
+import { FakeX } from './fake-x';
+
+const consumerKeys = { appKey: FakeX.userKeys.appKey, appSecret: FakeX.userKeys.appSecret };
 
 class SimpleCacheTestPlugin implements ITwitterApiClientPlugin {
   protected cache: { [urlHash: string]: TwitterResponse<any> } = {};
@@ -44,7 +46,7 @@ class SimpleOAuthStepHelperPlugin implements ITwitterApiClientPlugin {
     }
 
     const client = new TwitterApi({
-      ...getRequestKeys(),
+      ...consumerKeys,
       accessToken: oauthToken,
       accessSecret: this.cache[oauthToken],
     });
@@ -57,18 +59,30 @@ class SimpleOAuthStepHelperPlugin implements ITwitterApiClientPlugin {
   }
 }
 
-describe('Plugin API', () => {
+describe('Plugin API (offline: a fake X answers)', () => {
+  let x: FakeX;
+
+  before(async () => {
+    x = await FakeX.start();
+  });
+
+  after(() => x.close());
+
+  beforeEach(() => x.reset());
+
   it('Cache a single request with a plugin', async () => {
-    const client = new TwitterApi(getUserKeys(), { plugins: [new SimpleCacheTestPlugin()] });
+    const client = x.client(FakeX.userKeys, { plugins: [new SimpleCacheTestPlugin()] });
 
     const user = await client.v1.verifyCredentials();
     const anotherRequest = await client.v1.verifyCredentials();
 
     expect(user).to.equal(anotherRequest);
-  }).timeout(1000 * 30);
+    expect(x.requests).to.have.length(1);
+  });
 
   it('Remember OAuth token secret between step 1 and 2 of authentication', async () => {
-    const client = new TwitterApi(getRequestKeys(), { plugins: [new SimpleOAuthStepHelperPlugin()] });
+    x.on('POST', '/oauth/request_token', { body: 'oauth_token=request-token&oauth_token_secret=request-secret&oauth_callback_confirmed=true' });
+    const client = x.client(consumerKeys, { plugins: [new SimpleOAuthStepHelperPlugin()] });
 
     const { oauth_token } = await client.generateAuthLink('oob');
 
@@ -79,5 +93,5 @@ describe('Plugin API', () => {
     // Must login through
     // const { client: loggedClient, accessToken, accessSecret } = await loginPlugin.login(oauth_token, 'xxxxxxxx');
     // - Save accessToken, accessSecret to persistent storage
-  }).timeout(1000 * 30);
+  });
 });

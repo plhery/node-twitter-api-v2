@@ -1,0 +1,24 @@
+name: Live tests
+
+# Calls the real X API with the repository secrets, and some calls are billed: run it by hand, before a release for example
+on: workflow_dispatch
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+      - run: npm ci
+      - run: npm run test:live
+        env:
+          CONSUMER_TOKEN: ${{ secrets.CONSUMER_TOKEN }}
+          CONSUMER_SECRET: ${{ secrets.CONSUMER_SECRET }}
+          OAUTH_TOKEN: ${{ secrets.OAUTH_TOKEN }}
+          OAUTH_SECRET: ${{ secrets.OAUTH_SECRET }}

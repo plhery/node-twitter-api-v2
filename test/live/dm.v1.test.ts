@@ -1,8 +1,8 @@
 import 'mocha';
 import { expect } from 'chai';
-import { EDirectMessageEventTypeV1, ReceivedWelcomeDMCreateEventV1, TwitterApi } from '../src';
-import { getUserClient } from '../src/test/utils';
-import { sleepSecs } from '../src/v1/media-helpers.v1';
+import { EDirectMessageEventTypeV1, ReceivedWelcomeDMCreateEventV1, TwitterApi } from '../../src';
+import { getUserClient } from '../../src/test/utils';
+import { sleepSecs } from '../../src/v1/media-helpers.v1';
 
 let client: TwitterApi;
 
