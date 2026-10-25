@@ -4,7 +4,8 @@
 
 // -- Get stream rules --
 
-import { DataAndMetaV2, MetaV2, PaginableCountMetaV2, SentMeta } from './shared.v2.types';
+import { DataAndMetaV2, DataV2, MetaV2, PaginableCountMetaV2, SentMeta } from './shared.v2.types';
+import type { NumberString, TypeOrArrayOf } from '../shared.types';
 
 export interface StreamingV2GetRulesParams {
   /** Comma-separated list of rule IDs. If omitted, all rules are returned. */
@@ -96,3 +97,73 @@ export type StreamingV2UpdateRulesDeleteResult = MetaV2<SentMeta & {
 }>;
 
 export type StreamingV2UpdateRulesResult = StreamingV2UpdateRulesAddResult | StreamingV2UpdateRulesDeleteResult;
+
+// -- Stream rule counts --
+
+export interface StreamingV2RuleCount {
+  client_app_id?: string;
+  rule_count: number;
+}
+
+export interface StreamingV2RuleCounts {
+  // X's OpenAPI spec types these three as strings, while its own SDK expects numbers
+  /** Maximum number of rules per client app. */
+  cap_per_client_app: NumberString;
+  /** Maximum number of rules across the project. */
+  cap_per_project: NumberString;
+  /** Number of rules of every client app of the project. */
+  project_rules_count: NumberString;
+  /** Rule count of the calling client app. */
+  client_app_rules_count: StreamingV2RuleCount;
+  /** Rule count of each client app of the project. */
+  all_project_client_apps?: StreamingV2RuleCount[];
+}
+
+export interface StreamingV2RuleCountsParams {
+  'rules_count.fields'?: TypeOrArrayOf<keyof StreamingV2RuleCounts> | string;
+}
+
+export type StreamingV2RuleCountsResult = DataV2<StreamingV2RuleCounts>;
+
+// -- Stream connections --
+
+export type TStreamingV2ConnectionEndpoint = 'filtered_stream' | 'sample_stream' | 'sample10_stream' | 'firehose_stream'
+  | 'tweets_compliance_stream' | 'users_compliance_stream' | 'tweet_label_stream'
+  | 'firehose_stream_lang_en' | 'firehose_stream_lang_ja' | 'firehose_stream_lang_ko' | 'firehose_stream_lang_pt'
+  | 'likes_firehose_stream' | 'likes_sample10_stream' | 'likes_compliance_stream';
+
+export interface StreamingV2Connection {
+  id?: string;
+  endpoint_name?: string;
+  client_ip?: string;
+  /** ISO date string */
+  connected_at?: string;
+  /** ISO date string */
+  disconnected_at?: string;
+  disconnect_reason?: string;
+}
+
+export interface StreamingV2ConnectionsParams {
+  /** Defaults to `active`. */
+  status?: 'active' | 'inactive' | 'all';
+  endpoints?: TypeOrArrayOf<TStreamingV2ConnectionEndpoint> | string;
+  /** Min 1, max 100, default 10. */
+  max_results?: number;
+  pagination_token?: string;
+  'connection.fields'?: TypeOrArrayOf<keyof StreamingV2Connection> | string;
+}
+
+export type StreamingV2ConnectionsResult = DataAndMetaV2<StreamingV2Connection[], {
+  result_count?: number;
+  next_token?: string;
+}>;
+
+export type StreamingV2TerminateConnectionsResult = DataV2<{
+  successful_kills: number;
+  failed_kills: number;
+  results?: {
+    uuid: string;
+    success: boolean;
+    error_message?: string;
+  }[];
+}>;

@@ -13,8 +13,10 @@ The v1.1 streaming endpoints are no longer available on most X API plans, so the
 	* [Search endpoint](#search-endpoint)
 	* [Search endpoint - Get applied rules](#search-endpoint---get-applied-rules)
 	* [Search endpoint - Add or delete rules](#search-endpoint---add-or-delete-rules)
+	* [Search endpoint - Count rules](#search-endpoint---count-rules)
         * [Sample endpoint](#sample-endpoint-1)
         * [Sample 10% endpoint](#sample-10-endpoint)
+	* [Streaming connections](#streaming-connections)
 * [Make a custom request](#make-a-custom-request)
 * [`TweetStream` reference](#tweetstream-reference)
 	* [Methods / properties](#methods--properties)
@@ -236,6 +238,25 @@ const deleteRules = await client.v2.updateStreamRules({
 await client.v2.updateStreamRules({}, { delete_all: true });
 ```
 
+### Search endpoint - Count rules
+
+Method: **`v2.streamRuleCounts`**.
+
+Endpoint: `tweets/search/stream/rules/counts (GET)`.
+
+Reference: https://docs.x.com/x-api/stream/get-stream-rule-counts
+
+Level: **App-only** (Bearer auth).
+
+Returns: **`StreamingV2RuleCountsResult`**.
+
+```ts
+const client = ...; // (create a Bearer OAuth2 client)
+
+const { data: counts } = await client.v2.streamRuleCounts();
+console.log(`${counts.project_rules_count} rules, ${counts.cap_per_project} at most`);
+```
+
 ### Sample endpoint
 
 Only available on X Enterprise plans ([X docs](https://docs.x.com/x-api/posts/volume-streams/introduction)).
@@ -283,6 +304,32 @@ for await (const { data } of stream) {
 const stream = client.v2.sample10Stream({ autoConnect: false });
 stream.on(ETwitterStreamEvent.Data, console.log);
 await stream.connect({ autoReconnect: true });
+```
+
+### Streaming connections
+
+List the streaming connections of your app (active, past or both), and close them.
+Useful when a stream fails to connect because a previous connection is still open.
+
+Methods: **`v2.streamConnections`**, **`v2.terminateAllStreamConnections`** and **`v2.terminateStreamConnections`**.
+
+Endpoints: `connections (GET)`, `connections/all (DELETE)` and `connections/:endpoint_id (DELETE)`.
+
+Reference: https://docs.x.com/x-api/connections/get-connection-history
+
+Level: **App-only** (Bearer auth).
+
+Takes: **`StreamingV2ConnectionsParams`** (for `streamConnections`) or a `TStreamingV2ConnectionEndpoint`, like `'filtered_stream'` (for `terminateStreamConnections`).
+Returns: **`StreamingV2ConnectionsResult`** or **`StreamingV2TerminateConnectionsResult`**.
+
+```ts
+const client = ...; // (create a Bearer OAuth2 client)
+
+const { data: connections } = await client.v2.streamConnections({ status: 'active' });
+
+// Close the connections to the filtered stream, or every connection of the app
+await client.v2.terminateStreamConnections('filtered_stream');
+await client.v2.terminateAllStreamConnections();
 ```
 
 ## Make a custom request

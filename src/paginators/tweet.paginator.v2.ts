@@ -254,3 +254,13 @@ export class TweetV2ListTweetsPaginator
 {
   protected _endpoint = 'lists/:id/tweets';
 }
+
+export class TweetV2RetweetsPaginator
+  extends TweetListV2Paginator<Tweetv2ListResult, TweetV2PaginableListParams, { id: string }>
+{
+  protected _endpoint = 'tweets/:id/retweets';
+}
+
+export class TweetV2RetweetsOfMePaginator extends TweetListV2Paginator<Tweetv2ListResult, TweetV2PaginableListParams> {
+  protected _endpoint = 'users/reposts_of_me';
+}

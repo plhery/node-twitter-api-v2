@@ -61,6 +61,20 @@ import {
   CommunitiesV2Result,
   CommunityByIDV2Params,
   CommunitySearchV2Params,
+  UserSearchV2Params,
+  UserSearchV2Result,
+  ListPinnedV2Result,
+  StreamingV2RuleCountsParams,
+  StreamingV2RuleCountsResult,
+  StreamingV2ConnectionsParams,
+  StreamingV2ConnectionsResult,
+  StreamingV2TerminateConnectionsResult,
+  TStreamingV2ConnectionEndpoint,
+  UsageCreditsV2Result,
+  TrendsByWoeidV2Params,
+  TrendsByWoeidV2Result,
+  PersonalizedTrendsV2Params,
+  PersonalizedTrendsV2Result,
 } from '../types';
 import {
   TweetSearchAllV2Paginator,
@@ -75,13 +89,15 @@ import {
   TweetBookmarksTimelineV2Paginator,
   QuotedTweetsTimelineV2Paginator,
   TweetHomeTimelineV2Paginator,
+  TweetV2RetweetsPaginator,
+  TweetV2RetweetsOfMePaginator,
 } from '../paginators';
 import TwitterApiv2LabsReadOnly from '../v2-labs/client.v2.labs.read';
-import { TweetLikingUsersV2Paginator, TweetRetweetersUsersV2Paginator, UserBlockingUsersV2Paginator, UserFollowersV2Paginator, UserFollowingV2Paginator, UserListFollowersV2Paginator, UserListMembersV2Paginator, UserMutingUsersV2Paginator } from '../paginators/user.paginator.v2';
+import { TweetLikingUsersV2Paginator, TweetRetweetersUsersV2Paginator, UserBlockingUsersV2Paginator, UserFollowersV2Paginator, UserFollowingV2Paginator, UserListFollowersV2Paginator, UserListMembersV2Paginator, UserMutingUsersV2Paginator, UserSearchV2Paginator } from '../paginators/user.paginator.v2';
 import { isTweetStreamV2ErrorPayload } from '../helpers';
 import TweetStream from '../stream/TweetStream';
 import { PromiseOrType } from '../types/shared.types';
-import { GetDMEventV2Params, GetDMEventV2Result } from '../types/v2/dm.v2.types';
+import { GetDMEventByIdV2Params, GetDMEventByIdV2Result, GetDMEventV2Params, GetDMEventV2Result } from '../types/v2/dm.v2.types';
 import { ConversationDMTimelineV2Paginator, FullDMTimelineV2Paginator, OneToOneDMTimelineV2Paginator } from '../paginators/dm.paginator.v2';
 
 /**
@@ -325,6 +341,42 @@ export default class TwitterApiv2ReadOnly extends TwitterApiSubClient {
     });
   }
 
+  /**
+   * Returns the Retweets of a Tweet (the Tweets themselves; `.tweetRetweetedBy()` returns their authors).
+   * https://docs.x.com/x-api/posts/get-reposts
+   *
+   * OAuth2 scopes: `tweet.read` `users.read`
+   */
+  public async retweets(tweetId: string, options: Partial<TweetV2PaginableListParams> = {}) {
+    const params = { id: tweetId };
+    const initialRq = await this.get<Tweetv2ListResult>('tweets/:id/retweets', options, { fullResponse: true, params });
+
+    return new TweetV2RetweetsPaginator({
+      realData: initialRq.data,
+      rateLimit: initialRq.rateLimit!,
+      instance: this,
+      queryParams: { ...options },
+      sharedParams: params,
+    });
+  }
+
+  /**
+   * Returns the Retweets of the authenticated user's Tweets.
+   * https://docs.x.com/x-api/users/get-reposts-of-me
+   *
+   * OAuth2 scopes: `tweet.read` `timeline.read`
+   */
+  public async retweetsOfMe(options: Partial<TweetV2PaginableListParams> = {}) {
+    const initialRq = await this.get<Tweetv2ListResult>('users/reposts_of_me', options, { fullResponse: true });
+
+    return new TweetV2RetweetsOfMePaginator({
+      realData: initialRq.data,
+      rateLimit: initialRq.rateLimit!,
+      instance: this,
+      queryParams: { ...options },
+    });
+  }
+
   /* Bookmarks */
 
   /**
@@ -395,6 +447,24 @@ export default class TwitterApiv2ReadOnly extends TwitterApiSubClient {
   public usersByUsernames(usernames: string | string[], options: Partial<UsersV2Params> = {}) {
     usernames = Array.isArray(usernames) ? usernames.join(',') : usernames;
     return this.get<UsersV2Result>('users/by', { ...options, usernames });
+  }
+
+  /**
+   * Returns the users that match a search query.
+   * https://docs.x.com/x-api/users/search-users
+   *
+   * OAuth2 scopes: `users.read` `tweet.read`
+   */
+  public async searchUsers(query: string, options: Partial<UserSearchV2Params> = {}) {
+    const queryParams = { ...options, query };
+    const initialRq = await this.get<UserSearchV2Result>('users/search', queryParams, { fullResponse: true });
+
+    return new UserSearchV2Paginator({
+      realData: initialRq.data,
+      rateLimit: initialRq.rateLimit!,
+      instance: this,
+      queryParams,
+    });
   }
 
   /**
@@ -562,6 +632,18 @@ export default class TwitterApiv2ReadOnly extends TwitterApiSubClient {
   }
 
   /**
+   * Returns the Lists pinned by the authenticated user.
+   * https://docs.x.com/x-api/users/get-pinned-lists
+   *
+   * OAuth2 scopes: `tweet.read` `users.read` `list.read`
+   *
+   * **Note**: You must specify the currently logged user ID; you can get it with `client.currentUserV2()`.
+   */
+  public listsPinned(loggedUserId: string, options: Partial<GetListV2Params> = {}) {
+    return this.get<ListPinnedV2Result>('users/:id/pinned_lists', options, { params: { id: loggedUserId } });
+  }
+
+  /**
    * Returns a list of Tweets from the specified List.
    * https://developer.x.com/en/docs/twitter-api/lists/list-tweets/api-reference/get-lists-id-tweets
    */
@@ -676,6 +758,17 @@ export default class TwitterApiv2ReadOnly extends TwitterApiSubClient {
     });
   }
 
+  /**
+   * Returns a single Direct Message event by its ID.
+   *
+   * OAuth 2 scopes: `dm.read`, `tweet.read`, `users.read`
+   *
+   * https://docs.x.com/x-api/direct-messages/get-dm-event-by-id
+   */
+  public dmEvent(eventId: string, options: Partial<GetDMEventByIdV2Params> = {}) {
+    return this.get<GetDMEventByIdV2Result>('dm_events/:event_id', options, { params: { event_id: eventId } });
+  }
+
   /* Spaces */
 
   /**
@@ -779,6 +872,15 @@ export default class TwitterApiv2ReadOnly extends TwitterApiSubClient {
   }
 
   /**
+   * Returns the number of stream rules of your client app and project, and their caps.
+   * OAuth2 Bearer auth only.
+   * https://docs.x.com/x-api/stream/get-stream-rule-counts
+   */
+  public streamRuleCounts(options: Partial<StreamingV2RuleCountsParams> = {}) {
+    return this.get<StreamingV2RuleCountsResult>('tweets/search/stream/rules/counts', options);
+  }
+
+  /**
    * Streams about 1% of all Tweets in real-time.
    * https://developer.x.com/en/docs/twitter-api/tweets/volume-streams/api-reference/get-tweets-sample-stream
    *
@@ -804,6 +906,34 @@ export default class TwitterApiv2ReadOnly extends TwitterApiSubClient {
 
   public sample10Stream({ autoConnect, ...options }: Partial<Tweetv2FieldsParams> & { autoConnect?: boolean } = {}) {
     return this.getStream<TweetV2SingleResult>('tweets/sample10/stream', options as any, { payloadIsError: isTweetStreamV2ErrorPayload, autoConnect });
+  }
+
+  /**
+   * Returns the active (by default) and past streaming connections of your app, with their disconnect reasons.
+   * OAuth2 Bearer auth only.
+   * **This endpoint has pagination, yet it is not supported by bundled paginators. Use `next_token` to fetch next page.**
+   * https://docs.x.com/x-api/connections/get-connection-history
+   */
+  public streamConnections(options: Partial<StreamingV2ConnectionsParams> = {}) {
+    return this.get<StreamingV2ConnectionsResult>('connections', options);
+  }
+
+  /**
+   * Terminates all the active streaming connections of your app, for example to fix a `TooManyConnections` error.
+   * OAuth2 Bearer auth only.
+   * https://docs.x.com/x-api/connections/terminate-all-connections
+   */
+  public terminateAllStreamConnections() {
+    return this.delete<StreamingV2TerminateConnectionsResult>('connections/all');
+  }
+
+  /**
+   * Terminates the active streaming connections of your app to a stream endpoint, like `filtered_stream`.
+   * OAuth2 Bearer auth only.
+   * https://docs.x.com/x-api/connections/terminate-connections-by-endpoint
+   */
+  public terminateStreamConnections(endpoint: TStreamingV2ConnectionEndpoint) {
+    return this.delete<StreamingV2TerminateConnectionsResult>('connections/:endpoint_id', undefined, { params: { endpoint_id: endpoint } });
   }
 
   /* Batch compliance */
@@ -885,6 +1015,36 @@ export default class TwitterApiv2ReadOnly extends TwitterApiSubClient {
    */
   public async usage(options: Partial<TweetUsageV2Params> = {}) {
     return this.get<TweetV2UsageResult>('usage/tweets', options);
+  }
+
+  /**
+   * Returns the pay-per-use credit balance of your developer account, in USD.
+   * OAuth2 Bearer or OAuth2 user auth only.
+   * https://docs.x.com/x-api/usage/get-usage-credits
+   */
+  public usageCredits() {
+    return this.get<UsageCreditsV2Result>('usage/credits');
+  }
+
+  /* Trends */
+
+  /**
+   * Returns the trends of a location, given its Yahoo! WOEID (`1` for worldwide).
+   * OAuth2 Bearer or OAuth2 user auth only.
+   * https://docs.x.com/x-api/trends/get-trends-by-woeid
+   */
+  public trendsByWoeid(woeid: number, options: Partial<TrendsByWoeidV2Params> = {}) {
+    return this.get<TrendsByWoeidV2Result>('trends/by/woeid/:woeid', options, { params: { woeid } });
+  }
+
+  /**
+   * Returns the trends personalized for the authenticated user.
+   * https://docs.x.com/x-api/trends/get-personalized-trends
+   *
+   * OAuth2 scopes: `tweet.read` `users.read`
+   */
+  public personalizedTrends(options: Partial<PersonalizedTrendsV2Params> = {}) {
+    return this.get<PersonalizedTrendsV2Result>('users/personalized_trends', options);
   }
 
   /**

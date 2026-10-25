@@ -52,3 +52,5 @@ export type ListMemberV2Result = DataV2<{ is_member: boolean }>;
 export type ListFollowV2Result = DataV2<{ following: boolean }>;
 
 export type ListPinV2Result = DataV2<{ pinned: boolean }>;
+
+export type ListPinnedV2Result = DataMetaAndIncludeV2<ListV2[], { result_count: number }, TListV2Includes>;

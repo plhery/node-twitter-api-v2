@@ -75,3 +75,12 @@ export interface IParsedOAuth2TokenResult {
   scope: TOAuth2Scope[];
   refreshToken?: string;
 }
+
+export interface ExchangeOAuth1TokenArgs {
+  /** The OAuth 1.0a access token of the user. */
+  accessToken: string;
+  /** The OAuth 1.0a access secret of the user. */
+  accessSecret: string;
+  /** A subset of the scopes X grants from the user's OAuth 1.0a permissions. All of them if omitted. */
+  scope?: TypeOrArrayOf<TOAuth2Scope> | TypeOrArrayOf<string>;
+}

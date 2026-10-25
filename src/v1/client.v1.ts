@@ -65,7 +65,7 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
    *
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/sending-and-receiving/api-reference/get-event
    *
-   * @deprecated v1.1 endpoint, no longer available on most X API plans. No v2 equivalent in this library.
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Use `v2.dmEvent()` instead.
    */
   public getDmEvent(id: string) {
     return this.get<ReceivedDMEventV1>('direct_messages/events/show.json', { id });
@@ -76,7 +76,7 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
    * The authenticating user must be the recipient of the specified direct message.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/sending-and-receiving/api-reference/delete-message-event
    *
-   * @deprecated v1.1 endpoint, no longer available on most X API plans. No v2 equivalent in this library.
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Use `v2.deleteDmEvent()` instead.
    */
   public deleteDm(id: string) {
     return this.delete<void>('direct_messages/events/destroy.json', { id });

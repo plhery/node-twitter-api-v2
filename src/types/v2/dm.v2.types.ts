@@ -2,7 +2,7 @@ import { TypeOrArrayOf } from '../shared.types';
 import { CashtagEntity, HashtagEntity, MentionEntity, UrlEntity } from '../entities.types';
 import { TTweetv2MediaField, TTweetv2TweetField, TTweetv2UserField } from './tweet.v2.types';
 import { ApiV2Includes, ReferencedTweetV2 } from './tweet.definition.v2';
-import { DataMetaAndIncludeV2, PaginableCountMetaV2 } from './shared.v2.types';
+import { DataAndIncludeV2, DataMetaAndIncludeV2, DataV2, PaginableCountMetaV2 } from './shared.v2.types';
 
 export type TDMEventV2EventType = 'MessageCreate' | 'ParticipantsJoin' | 'ParticipantsLeave';
 
@@ -75,3 +75,13 @@ export interface PostDMInConversationResult {
     dm_conversation_id: string;
     dm_event_id: string;
 }
+
+// GET /2/dm_events/:event_id
+
+export type GetDMEventByIdV2Params = Pick<GetDMEventV2Params, 'dm_event.fields' | 'expansions' | 'media.fields' | 'tweet.fields' | 'user.fields'>;
+
+export type GetDMEventByIdV2Result = DataAndIncludeV2<DMEventV2, ApiV2Includes>;
+
+// DELETE /2/dm_events/:event_id
+
+export type DeleteDMEventV2Result = DataV2<{ deleted: boolean }>;

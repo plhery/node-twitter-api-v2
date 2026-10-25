@@ -17,6 +17,7 @@ import type {
   TweetV2PostTweetResult,
   TweetV2RetweetResult,
   UserV2BlockResult,
+  UserV2DmBlockResult,
   UserV2FollowResult,
   UserV2MuteResult,
   UserV2UnfollowResult,
@@ -25,7 +26,7 @@ import type {
   TUploadableMedia,
 } from '../types';
 import TwitterApiv2LabsReadWrite from '../v2-labs/client.v2.labs.write';
-import { CreateDMConversationParams, PostDMInConversationParams, PostDMInConversationResult } from '../types/v2/dm.v2.types';
+import { CreateDMConversationParams, DeleteDMEventV2Result, PostDMInConversationParams, PostDMInConversationResult } from '../types/v2/dm.v2.types';
 import { MediaV2MediaCategory, MediaV2MetadataCreateParams, MediaV2MetadataCreateResult, MediaV2MimeType, MediaV2UploadAppendParams, MediaV2UploadInitParams, MediaV2UploadResponse } from '../types/v2/media.v2.types';
 import { getFileHandle, getFileSizeFromFileHandle, readNextPartOf } from '../v1/media-helpers.v1';
 
@@ -511,5 +512,35 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    */
   public createDmConversation(options: CreateDMConversationParams) {
     return this.post<PostDMInConversationResult>('dm_conversations', options);
+  }
+
+  /**
+   * Deletes a Direct Message event owned by the authenticated user.
+   * https://docs.x.com/x-api/direct-messages/delete-dm-event
+   *
+   * OAuth2 scopes: `dm.write` `dm.read`
+   */
+  public deleteDmEvent(eventId: string) {
+    return this.delete<DeleteDMEventV2Result>('dm_events/:event_id', undefined, { params: { event_id: eventId } });
+  }
+
+  /**
+   * Stops the target user from sending Direct Messages to the authenticated user.
+   * https://docs.x.com/x-api/users/block-dms
+   *
+   * OAuth2 scopes: `dm.write` `users.read` `tweet.read`
+   */
+  public blockDms(targetUserId: string) {
+    return this.post<UserV2DmBlockResult>('users/:id/dm/block', undefined, { params: { id: targetUserId } });
+  }
+
+  /**
+   * Lets the target user send Direct Messages to the authenticated user again.
+   * https://docs.x.com/x-api/users/unblock-dms
+   *
+   * OAuth2 scopes: `dm.write` `users.read` `tweet.read`
+   */
+  public unblockDms(targetUserId: string) {
+    return this.post<UserV2DmBlockResult>('users/:id/dm/unblock', undefined, { params: { id: targetUserId } });
   }
 }
