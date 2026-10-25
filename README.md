@@ -40,18 +40,32 @@ Here's a quick example of usage:
 ```ts
 import { TwitterApi } from 'twitter-api-v2';
 
-// Instantiate with desired auth type (here's Bearer v2 auth)
-const twitterClient = new TwitterApi('<YOUR_APP_USER_TOKEN>');
-
-// Tell typescript it's a readonly app
-const readOnlyClient = twitterClient.readOnly;
+// OAuth 1.0a with the 4 keys of your app, to act as your own account.
+// You find them in the X Developer Console, under "Keys and tokens".
+const twitterClient = new TwitterApi({
+  appKey: '<API_KEY>',
+  appSecret: '<API_KEY_SECRET>',
+  accessToken: '<ACCESS_TOKEN>',
+  accessSecret: '<ACCESS_TOKEN_SECRET>',
+});
 
 // Play with the built in methods
-const user = await readOnlyClient.v2.userByUsername('plhery');
+const { data: user } = await twitterClient.v2.userByUsername('plhery');
 await twitterClient.v2.tweet('Hello, this is a test.');
 // You can upload media easily!
-await twitterClient.v2.uploadMedia('./big-buck-bunny.mp4', { media_type: 'video/mp4' });
+const mediaId = await twitterClient.v2.uploadMedia('./big-buck-bunny.mp4', { media_type: 'video/mp4' });
+await twitterClient.v2.tweet({ text: 'Look at this video!', media: { media_ids: [mediaId] } });
+
+// To only read public data, the app's bearer token is enough (it can't post)
+const appOnlyClient = new TwitterApi('<BEARER_TOKEN>');
+const { data: tweet } = await appOnlyClient.v2.singleTweet('20');
 ```
+
+Not sure which credentials you need? See [which credentials to use](./doc/auth.md#which-credentials-to-use).
+
+A few things to know before you start:
+- The X API is pay-per-use: there's no free tier, and every read and write is billed. See [X pricing](https://docs.x.com/x-api/getting-started/pricing), and set a spending limit in the Developer Console while you test.
+- `twitter-api-v2` is made for Node.js. It should also run on Deno and Bun through their Node.js compatibility, but not in browsers or React Native. See [supported runtimes](./doc/basics.md#supported-runtimes).
 
 ## Why?
 
@@ -104,7 +118,9 @@ Learn how to use the full potential of `twitter-api-v2`.
 
 - Get started
   - [Create a client and make your first request](./doc/basics.md)
+  - [Choose which credentials to use](./doc/auth.md#which-credentials-to-use)
   - [Handle Twitter authentication flows](./doc/auth.md)
+  - [Fix common errors (401, 402, 403, 429)](./doc/errors.md#common-errors)
   - [Explore some examples](./doc/examples.md)
   - [Use and create plugins](./doc/plugins.md)
 - Use endpoints wrappers — ensure typings of request & response

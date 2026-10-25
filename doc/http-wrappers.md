@@ -13,7 +13,7 @@ If the endpoint-wrapper for your request has not been made yet, don't leave!
 You can make requests on your own!
 
 - `.get` and `.delete`, that takes `(partialUrl: string, query?: TRequestQuery, requestSettings?: TGetClientRequestArgs)` in parameters
-- `.post`, `.put` and `.patch` that takes `(partialUrl: string, body?: TRequestBody, requestSettings?: TGetClientRequestArgs)` in parameters
+- `.post`, `.put` and `.patch` that takes `(partialUrl: string, body?: TRequestBody, requestSettings?: TClientRequestArgs)` in parameters (`requestSettings.query` adds a query string)
 
 ```ts
 // Don't forget the .json in most of the v1 endpoints!

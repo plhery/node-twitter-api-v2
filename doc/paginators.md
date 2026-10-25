@@ -76,6 +76,32 @@ for await (const tweet of homeTimeline) {
 }
 ```
 
+## Page size, cost and resuming
+
+**Page size**: each request returns one page, and `max_results` sets its size. X's default is small (10 tweets for search), so pass it if you want more.
+`.fetchLast()` and async iteration ask for 100 items per page.
+A page can have fewer items than `max_results` even when more results exist: use `.done` to know if the collection is over.
+```ts
+const nodeTweets = await client.v2.search('nodeJS', { max_results: 100 });
+```
+
+**Cost**: the X API is pay-per-use, and reads are billed per item returned (see [X pricing](https://docs.x.com/x-api/getting-started/pricing)).
+Async iteration and `.fetchLast()` without a count keep fetching until there are no more results or your rate limit is hit, which can be a lot of items.
+Give `.fetchLast()` a count, `break` out of your `for await` loop when you have enough, and set a spending limit in the Developer Console.
+
+**Resuming later**: v2 paginators expose the token of the next page in `.meta.next_token`.
+Store it, and give it back to the same method to continue from there: as `pagination_token` for most endpoints, and as `next_token` for search.
+```ts
+const timeline = await client.v2.userTimeline('12');
+const savedToken = timeline.meta.next_token;
+
+// Later
+const nextTimelinePage = await client.v2.userTimeline('12', { pagination_token: savedToken });
+
+const search = await client.v2.search('nodeJS');
+const nextSearchPage = await client.v2.search('nodeJS', { next_token: search.meta.next_token });
+```
+
 ## v2 meta, includes
 
 For tweets endpoints that returns `meta`s and `includes` in their payload, `v2` paginators supports them (and merge them into a unique container :D),

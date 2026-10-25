@@ -4,6 +4,14 @@
 > Feel free to convert them to regular JavaScript. If you don't use a transpiler,
 > you might need to replace `import`s by `require()` calls.
 
+## Supported runtimes
+
+`twitter-api-v2` is made for Node.js: it uses Node's `https`, `zlib`, `crypto` and `fs` modules.
+
+- **Deno and Bun**: they should work through their Node.js compatibility, but we don't test them, so please open an issue if something breaks.
+- **Browsers and React Native**: not supported. Your keys would be visible to anyone, and X's API doesn't allow cross-origin requests anyway.
+  Call the X API from your server, and let your front-end talk to your server.
+
 ## Client basics
 
 ### Create a client
@@ -57,6 +65,9 @@ you can choose the right sub-client:
 - `Read-write`: `rwClient = client.readWrite`
 - `Read-only`: `roClient = client.readOnly`
 
+This is optional, and it doesn't change any request: it only hides the methods you can't use from TypeScript and your IDE suggestions.
+What you can actually do depends on your credentials, see [which credentials to use](./auth.md#which-credentials-to-use).
+
 ## Authentication
 
 Please see [Authentication part](./auth.md) of the doc.
@@ -98,14 +109,14 @@ If your network connection is behind a proxy and you are unable to make requests
 
 ```ts
 // Note: this package is an external package, it isn't bundled with Node.
-import * as HttpProxyAgent from 'https-proxy-agent';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 // HTTPS proxy to connect to
 // twitter-api-v2 will always use HTTPS
 const proxy = process.env.HTTP_PROXY || 'https://1.1.1.1:3000';
 
-// create an instance of the `HttpProxyAgent` class with the proxy server information
-const httpAgent = new HttpProxyAgent(proxy);
+// create an instance of the `HttpsProxyAgent` class with the proxy server information
+const httpAgent = new HttpsProxyAgent(proxy);
 
 // Instantiate helper with the agent
 const client = new TwitterApi('<bearerToken>', { httpAgent });

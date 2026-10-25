@@ -118,3 +118,61 @@ TwitterApiV2Settings.logger = {
   },
 };
 ```
+
+## Common errors
+
+X explains why a request failed in the response body, which you find in `error.data`.
+The error message doesn't always include it, so log `error.data` first:
+
+```ts
+import { ApiResponseError } from 'twitter-api-v2';
+
+try {
+  await client.v2.tweet('Hello!');
+} catch (error) {
+  if (error instanceof ApiResponseError) {
+    console.log(error.code, error.data);
+  }
+}
+```
+
+### 401 Unauthorized
+
+X doesn't accept your credentials:
+- A key or token is wrong or empty. Check that your environment variables are loaded.
+- You regenerated your keys or tokens in the Developer Console, which revokes the old ones.
+- Your OAuth 2.0 user access token expired (they last two hours): [refresh it](./auth.md#optional-refresh-the-token-later).
+
+### 402 Payment Required
+
+Your account probably ran out of credits. X blocks requests when your credit balance is used up, or when you reach the spending limit set in the Developer Console,
+until you add credits or the next billing cycle starts. X doesn't document which status code it sends then, but users report a 402. See [X pricing](https://docs.x.com/x-api/getting-started/pricing).
+
+### 403 Forbidden
+
+Your credentials are valid, but they don't allow this request. `error.data.detail` usually tells you why:
+- **"Authenticating with OAuth 2.0 Application-Only is forbidden for this endpoint"**: you used the bearer token (or `.appLogin()`) for an endpoint that acts as a user, like posting or `v2.me()`.
+  Use OAuth 1.0a user keys or an OAuth 2.0 user token, see [which credentials to use](./auth.md#which-credentials-to-use).
+- **"Authenticating with Unknown is forbidden for this endpoint"**: X couldn't use the credentials you sent.
+  Check that none of them is empty, then regenerate the access token and secret in the Developer Console.
+- **"Your client app is not configured with the appropriate oauth1 app permissions for this endpoint"**: your app is read-only.
+  Set it to "Read and write" in its user authentication settings, then regenerate the access token and secret.
+- **A plain "Forbidden" with an OAuth 2.0 user token**: the token misses a scope this endpoint needs, like `tweet.write`, `media.write` or `dm.write`.
+  Add it to your scopes, and send the user through the auth flow again.
+- **"client-not-enrolled"**, or a message saying your app must be attached to a Project: create your app inside a Project in the Developer Console,
+  and check that your access includes this endpoint.
+- **"You currently have access to a subset of X API v2 endpoints..." (code 453)**: you called a v1.1 endpoint your access doesn't include. Use the v2 method instead.
+
+### Requests X no longer allows
+
+Some requests fail even with the right credentials and scopes, because X restricted them on self-serve (pay-per-use) plans:
+- Since February 23, 2026, you can only reply to a tweet when its author summoned you, by mentioning your account or quoting one of your posts.
+- Since April 20, 2026, following, liking and quoting are removed from self-serve plans.
+
+Enterprise plans are not affected. See the [X changelog](https://docs.x.com/changelog).
+
+### 429 Too Many Requests
+
+You hit a rate limit, or a usage cap like the monthly cap of post reads.
+`error.rateLimitError` is `true`, and `error.rateLimit` tells you when the limit resets, see [rate limiting](./rate-limiting.md).
+If `error.rateLimit.day` or `error.rateLimit.userDay` has `remaining: 0`, you hit a 24-hour limit.
