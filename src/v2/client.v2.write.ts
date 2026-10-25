@@ -47,6 +47,8 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
 
   /**
    * Get a client for v2 labs endpoints.
+   *
+   * @deprecated X retired the Labs endpoints in 2020.
    */
   public get labs() {
     if (this._labs) return this._labs;
@@ -68,7 +70,9 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    * Causes the user ID identified in the path parameter to Like the target Tweet.
    * https://developer.x.com/en/docs/twitter-api/tweets/likes/api-reference/post-users-user_id-likes
    *
-   * **Note**: You must specify the currently logged user ID ; you can obtain it through v1.1 API.
+   * **Note**: You must specify the currently logged user ID; you can get it with `client.currentUserV2()`.
+   *
+   * **Note**: Since April 20, 2026, X only allows this on Enterprise plans.
    */
   public like(loggedUserId: string, targetTweetId: string) {
     return this.post<TweetV2LikeResult>('users/:id/likes', { tweet_id: targetTweetId }, { params: { id: loggedUserId } });
@@ -79,7 +83,9 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    * The request succeeds with no action when the user sends a request to a user they're not liking the Tweet or have already unliked the Tweet.
    * https://developer.x.com/en/docs/twitter-api/tweets/likes/api-reference/delete-users-id-likes-tweet_id
    *
-   * **Note**: You must specify the currently logged user ID ; you can obtain it through v1.1 API.
+   * **Note**: You must specify the currently logged user ID; you can get it with `client.currentUserV2()`.
+   *
+   * **Note**: Since April 20, 2026, X only allows this on Enterprise plans.
    */
   public unlike(loggedUserId: string, targetTweetId: string) {
     return this.delete<TweetV2LikeResult>('users/:id/likes/:tweet_id', undefined, {
@@ -91,7 +97,7 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    * Causes the user ID identified in the path parameter to Retweet the target Tweet.
    * https://developer.x.com/en/docs/twitter-api/tweets/retweets/api-reference/post-users-id-retweets
    *
-   * **Note**: You must specify the currently logged user ID ; you can obtain it through v1.1 API.
+   * **Note**: You must specify the currently logged user ID; you can get it with `client.currentUserV2()`.
    */
   public retweet(loggedUserId: string, targetTweetId: string) {
     return this.post<TweetV2RetweetResult>('users/:id/retweets', { tweet_id: targetTweetId }, { params: { id: loggedUserId } });
@@ -102,7 +108,7 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    * The request succeeds with no action when the user sends a request to a user they're not Retweeting the Tweet or have already removed the Retweet of.
    * https://developer.x.com/en/docs/twitter-api/tweets/retweets/api-reference/delete-users-id-retweets-tweet_id
    *
-   * **Note**: You must specify the currently logged user ID ; you can obtain it through v1.1 API.
+   * **Note**: You must specify the currently logged user ID; you can get it with `client.currentUserV2()`.
    */
   public unretweet(loggedUserId: string, targetTweetId: string) {
     return this.delete<TweetV2RetweetResult>('users/:id/retweets/:tweet_id', undefined, {
@@ -246,6 +252,8 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
   /**
    * Quote an existing Tweet on behalf of an authenticated user.
    * https://developer.x.com/en/docs/twitter-api/tweets/manage-tweets/api-reference/post-tweets
+   *
+   * **Note**: Since April 20, 2026, X only allows this on Enterprise plans.
    */
   public quote(status: string, quotedTweetId: string, payload: Partial<SendTweetV2Params> = {}) {
     return this.tweet(status, { ...payload, quote_tweet_id: quotedTweetId });
@@ -322,7 +330,9 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    *
    * OAuth2 scope: `follows.write`
    *
-   * **Note**: You must specify the currently logged user ID ; you can obtain it through v1.1 API.
+   * **Note**: You must specify the currently logged user ID; you can get it with `client.currentUserV2()`.
+   *
+   * **Note**: Since April 20, 2026, X only allows this on Enterprise plans.
    */
   public follow(loggedUserId: string, targetUserId: string) {
     return this.post<UserV2FollowResult>('users/:id/following', { target_user_id: targetUserId }, { params: { id: loggedUserId } });
@@ -334,7 +344,9 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    *
    * OAuth2 scope: `follows.write`
    *
-   * **Note**: You must specify the currently logged user ID ; you can obtain it through v1.1 API.
+   * **Note**: You must specify the currently logged user ID; you can get it with `client.currentUserV2()`.
+   *
+   * **Note**: Since April 20, 2026, X only allows this on Enterprise plans.
    */
   public unfollow(loggedUserId: string, targetUserId: string) {
     return this.delete<UserV2UnfollowResult>('users/:source_user_id/following/:target_user_id', undefined, {
@@ -347,7 +359,9 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    * The user (in the path) must match the user context authorizing the request.
    * https://developer.x.com/en/docs/twitter-api/users/blocks/api-reference/post-users-user_id-blocking
    *
-   * **Note**: You must specify the currently logged user ID; you can obtain it through v1.1 API.
+   * **Note**: You must specify the currently logged user ID; you can get it with `client.currentUserV2()`.
+   *
+   * **Note**: X only allows this on Enterprise plans.
    */
   public block(loggedUserId: string, targetUserId: string) {
     return this.post<UserV2BlockResult>('users/:id/blocking', { target_user_id: targetUserId }, { params: { id: loggedUserId } });
@@ -357,7 +371,9 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    * Allows a user or authenticated user ID to unblock another user.
    * https://developer.x.com/en/docs/twitter-api/users/blocks/api-reference/delete-users-user_id-blocking
    *
-   * **Note**: You must specify the currently logged user ID ; you can obtain it through v1.1 API.
+   * **Note**: You must specify the currently logged user ID; you can get it with `client.currentUserV2()`.
+   *
+   * **Note**: X only allows this on Enterprise plans.
    */
   public unblock(loggedUserId: string, targetUserId: string) {
     return this.delete<UserV2BlockResult>('users/:source_user_id/blocking/:target_user_id', undefined, {
@@ -369,7 +385,7 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    * Allows an authenticated user ID to mute the target user.
    * https://developer.x.com/en/docs/twitter-api/users/mutes/api-reference/post-users-user_id-muting
    *
-   * **Note**: You must specify the currently logged user ID ; you can obtain it through v1.1 API.
+   * **Note**: You must specify the currently logged user ID; you can get it with `client.currentUserV2()`.
    */
   public mute(loggedUserId: string, targetUserId: string) {
     return this.post<UserV2MuteResult>('users/:id/muting', { target_user_id: targetUserId }, { params: { id: loggedUserId } });
@@ -380,7 +396,7 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    * The request succeeds with no action when the user sends a request to a user they're not muting or have already unmuted.
    * https://developer.x.com/en/docs/twitter-api/users/mutes/api-reference/delete-users-user_id-muting
    *
-   * **Note**: You must specify the currently logged user ID ; you can obtain it through v1.1 API.
+   * **Note**: You must specify the currently logged user ID; you can get it with `client.currentUserV2()`.
    */
   public unmute(loggedUserId: string, targetUserId: string) {
     return this.delete<UserV2MuteResult>('users/:source_user_id/muting/:target_user_id', undefined, {

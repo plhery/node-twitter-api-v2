@@ -4,7 +4,7 @@ Most of the endpoints returning a paginable collection (user timeline, tweet sea
 
 By default, instance is built with the initial response data, and you have access to method to fetch automatically next page(s).
 ```ts
-const homeTimeline = await client.v1.homeTimeline();
+const homeTimeline = await client.v2.homeTimeline();
 ```
 
 ## Iterate over the fetched items

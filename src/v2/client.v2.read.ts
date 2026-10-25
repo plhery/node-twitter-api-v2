@@ -94,6 +94,8 @@ export default class TwitterApiv2ReadOnly extends TwitterApiSubClient {
 
   /**
    * Get a client for v2 labs endpoints.
+   *
+   * @deprecated X retired the Labs endpoints in 2020.
    */
   public get labs() {
     if (this._labs) return this._labs;
@@ -778,6 +780,8 @@ export default class TwitterApiv2ReadOnly extends TwitterApiSubClient {
   /**
    * Streams about 1% of all Tweets in real-time.
    * https://developer.x.com/en/docs/twitter-api/tweets/volume-streams/api-reference/get-tweets-sample-stream
+   *
+   * **Note**: X only allows this on Enterprise plans.
    */
   public sampleStream(options?: Partial<Tweetv2FieldsParams> & { autoConnect?: true }): Promise<TweetStream<TweetV2SingleResult>>;
   public sampleStream(options: Partial<Tweetv2FieldsParams> & { autoConnect: false }): TweetStream<TweetV2SingleResult>;
@@ -790,6 +794,8 @@ export default class TwitterApiv2ReadOnly extends TwitterApiSubClient {
   /**
    * Streams about 10% of all Tweets in real-time.
    * https://developer.x.com/en/docs/twitter-api/tweets/volume-streams/api-reference/get-tweets-sample10-stream
+   *
+   * **Note**: X only allows this on Enterprise plans.
    */
   public sample10Stream(options?: Partial<Tweetv2FieldsParams> & { autoConnect?: true }): Promise<TweetStream<TweetV2SingleResult>>;
   public sample10Stream(options: Partial<Tweetv2FieldsParams> & { autoConnect: false }): TweetStream<TweetV2SingleResult>;

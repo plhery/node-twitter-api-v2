@@ -1,6 +1,7 @@
 # Streaming
 
 This lib supports streaming for v1 and v2 API.
+The v1.1 streaming endpoints are no longer available on most X API plans, so their methods are deprecated: use the v2 ones.
 
 <!-- vscode-markdown-toc -->
 * [Using streaming](#using-streaming)
@@ -36,7 +37,7 @@ import { ETwitterStreamEvent, TweetStream, TwitterApi, ETwitterApiError } from '
 
 const client = new TwitterApi(); // (create a client)
 
-const stream = await client.v1.sampleStream();
+const stream = await client.v2.searchStream();
 
 // Awaits for a tweet
 stream.on(
@@ -101,6 +102,8 @@ await stream.connect({ autoReconnect: true, autoReconnectRetries: Infinity });
 ```
 
 ## Specific API v1.1 implementations
+
+> **Deprecated**: these endpoints are no longer available on most X API plans. Use the [v2 search stream](#search-endpoint) instead.
 
 API v1.1 streaming-related endpoints works only with classic OAuth 1.0a authentication.
 
@@ -235,6 +238,8 @@ await client.v2.updateStreamRules({}, { delete_all: true });
 
 ### Sample endpoint
 
+Only available on X Enterprise plans ([X docs](https://docs.x.com/x-api/posts/volume-streams/introduction)).
+
 Method: **`v2.sampleStream`**.
 
 Endpoint: `tweets/sample/stream`.
@@ -254,6 +259,8 @@ const stream = await client.v2.sampleStream();
 ### Sample 10% endpoint
 
 Streams approximately 10% of the public tweet volume in real time.
+
+Only available on X Enterprise plans ([X docs](https://docs.x.com/x-api/posts/volume-streams/introduction)).
 
 Method: **`v2.sample10Stream()`**.
 
@@ -291,7 +298,7 @@ NOTE: **Be careful to select the good API prefix for version 1.1. 1.1 does not u
 You can access quicky to an instance with the streaming prefix using `v1.stream`.
 
 ```ts
-// For v1
+// For v1 (deprecated)
 const streamFilter = await client.v1.stream.getStream('statuses/filter.json', { track: 'JavaScript,TypeScript' });
 // For v2
 const sampleFilterv2 = await client.v2.getStream('tweets/sample/stream');

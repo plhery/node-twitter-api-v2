@@ -24,6 +24,9 @@ export default class TwitterApiReadOnly extends TwitterApiBase {
 
   /* Direct access to subclients */
 
+  /**
+   * Client for the v1.1 API. X no longer serves most v1.1 endpoints, so most of its methods are deprecated: prefer `v2`.
+   */
   public get v1() {
     if (this._v1) return this._v1;
 
@@ -42,6 +45,8 @@ export default class TwitterApiReadOnly extends TwitterApiBase {
    *
    * You can use this method to test if authentication was successful.
    * Next calls to this methods will use the cached user, unless `forceFetch: true` is given.
+   *
+   * @deprecated Calls the v1.1 `account/verify_credentials` endpoint, which new X API apps can't use. Use `currentUserV2()` instead.
    */
   public async currentUser(forceFetch = false) {
     return await this.getCurrentUserObject(forceFetch);

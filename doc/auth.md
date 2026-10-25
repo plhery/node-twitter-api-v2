@@ -125,10 +125,10 @@ const { client: loggedClient, accessToken, accessSecret } = await client.login(G
 
 ### Finally, get the full logged user object
 
-You can use the method `.currentUser()` on your client.
+You can use the method `.currentUserV2()` on your client.
 
-This a shortcut to `.v1.verifyCredentials()` with a **cache that store user to avoid multiple API calls**.
-Its returns a `UserV1` object.
+This a shortcut to `.v2.me()` with a **cache that store user to avoid multiple API calls**.
+Its returns a `UserV2Result` object.
 
 ## Application-only authentication flow
 

@@ -20,6 +20,8 @@ export class TwitterApiv2 extends TwitterApiv2ReadWrite {
 
   /**
    * Get a client for v2 labs endpoints.
+   *
+   * @deprecated X retired the Labs endpoints in 2020.
    */
   public get labs() {
     if (this._labs) return this._labs;

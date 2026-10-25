@@ -37,6 +37,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
   /**
    * Publishes a new message_create event resulting in a Direct Message sent to a specified user from the authenticating user.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/sending-and-receiving/api-reference/new-event
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Use `v2.sendDmToParticipant()` instead.
    */
   public sendDm({ recipient_id, custom_profile_id, ...params }: SendDMV1Params) {
     const args: CreateDMEventV1Args = {
@@ -62,6 +64,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
    * Returns a single Direct Message event by the given id.
    *
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/sending-and-receiving/api-reference/get-event
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. No v2 equivalent in this library.
    */
   public getDmEvent(id: string) {
     return this.get<ReceivedDMEventV1>('direct_messages/events/show.json', { id });
@@ -71,6 +75,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
    * Deletes the direct message specified in the required ID parameter.
    * The authenticating user must be the recipient of the specified direct message.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/sending-and-receiving/api-reference/delete-message-event
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. No v2 equivalent in this library.
    */
   public deleteDm(id: string) {
     return this.delete<void>('direct_messages/events/destroy.json', { id });
@@ -81,6 +87,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
    * Sorted in reverse-chronological order.
    *
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/sending-and-receiving/api-reference/list-events
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Use `v2.listDmEvents()` instead.
    */
   public async listDmEvents(args: Partial<GetDmListV1Args> = {}) {
     const queryParams = { ...args };
@@ -99,6 +107,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
   /**
    * Creates a new Welcome Message that will be stored and sent in the future from the authenticating user in defined circumstances.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/welcome-messages/api-reference/new-welcome-message
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Welcome messages have no v2 equivalent.
    */
   public newWelcomeDm(name: string, data: MessageCreateDataV1) {
     const args: CreateWelcomeDMEventV1Args = {
@@ -116,6 +126,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
   /**
    * Returns a Welcome Message by the given id.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/welcome-messages/api-reference/get-welcome-message
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Welcome messages have no v2 equivalent.
    */
   public getWelcomeDm(id: string) {
     return this.get<WelcomeDirectMessageCreateV1Result>('direct_messages/welcome_messages/show.json', { id });
@@ -124,6 +136,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
   /**
    * Deletes a Welcome Message by the given id.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/welcome-messages/api-reference/delete-welcome-message
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Welcome messages have no v2 equivalent.
    */
   public deleteWelcomeDm(id: string) {
     return this.delete<void>('direct_messages/welcome_messages/destroy.json', { id });
@@ -133,6 +147,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
    * Updates a Welcome Message by the given ID.
    * Updates to the welcome_message object are atomic.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/welcome-messages/api-reference/update-welcome-message
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Welcome messages have no v2 equivalent.
    */
   public updateWelcomeDm(id: string, data: MessageCreateDataV1) {
     const args = { message_data: data };
@@ -147,6 +163,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
    * Sorted in reverse-chronological order.
    *
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/sending-and-receiving/api-reference/list-events
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Welcome messages have no v2 equivalent.
    */
   public async listWelcomeDms(args: Partial<GetDmListV1Args> = {}) {
     const queryParams = { ...args };
@@ -165,6 +183,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
   /**
    * Creates a new Welcome Message Rule that determines which Welcome Message will be shown in a given conversation.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/welcome-messages/api-reference/new-welcome-message-rule
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Welcome messages have no v2 equivalent.
    */
   public newWelcomeDmRule(welcomeMessageId: string) {
     return this.post<WelcomeDmRuleV1Result>('direct_messages/welcome_messages/rules/new.json', {
@@ -177,6 +197,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
   /**
    * Returns a Welcome Message Rule by the given id.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/welcome-messages/api-reference/get-welcome-message-rule
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Welcome messages have no v2 equivalent.
    */
   public getWelcomeDmRule(id: string) {
     return this.get<WelcomeDmRuleV1Result>('direct_messages/welcome_messages/rules/show.json', { id });
@@ -185,6 +207,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
   /**
    * Deletes a Welcome Message Rule by the given id.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/welcome-messages/api-reference/delete-welcome-message-rule
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Welcome messages have no v2 equivalent.
    */
   public deleteWelcomeDmRule(id: string) {
     return this.delete<void>('direct_messages/welcome_messages/rules/destroy.json', { id });
@@ -193,6 +217,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
   /**
    * Retrieves all welcome DM rules for this account.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/welcome-messages/api-reference/list-welcome-message-rules
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Welcome messages have no v2 equivalent.
    */
   public async listWelcomeDmRules(args: Partial<GetDmListV1Args> = {}) {
     const queryParams = { ...args };
@@ -204,6 +230,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
    * Test if a rule already exists, delete if any, then create a rule for current message ID.
    *
    * If you don't have already a welcome message, create it with `.newWelcomeMessage`.
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Welcome messages have no v2 equivalent.
    */
   public async setWelcomeDm(welcomeMessageId: string, deleteAssociatedWelcomeDmWhenDeletingRule = true) {
     const existingRules = await this.listWelcomeDmRules();
@@ -226,6 +254,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
   /**
    * Marks a message as read in the recipient’s Direct Message conversation view with the sender.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/typing-indicator-and-read-receipts/api-reference/new-read-receipt
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. No v2 equivalent in this library.
    */
   public markDmAsRead(lastEventId: string, recipientId: string) {
     return this.post<void>('direct_messages/mark_read.json', {
@@ -237,6 +267,8 @@ export class TwitterApiv1 extends TwitterApiv1ReadWrite {
   /**
    * Displays a visual typing indicator in the recipient’s Direct Message conversation view with the sender.
    * https://developer.x.com/en/docs/twitter-api/v1/direct-messages/typing-indicator-and-read-receipts/api-reference/new-typing-indicator
+   *
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. No v2 equivalent in this library.
    */
   public indicateDmTyping(recipientId: string) {
     return this.post<void>('direct_messages/indicate_typing.json', {

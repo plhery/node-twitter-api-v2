@@ -1,6 +1,6 @@
 # Examples
 
-Those examples are valid for both v1.1 and v2 of Twitter API.
+Those examples use the v2 API: X no longer serves most v1.1 endpoints.
 
 Presented examples are **not exhaustive**. Every endpoint wrappers are available in [the v1.1 comprehensive documentation](./v1.md), [the v2 comprehensive documentation](./v2.md) and [the stream-related comprehensive documentation](./streaming.md).
 
@@ -20,15 +20,10 @@ For each implemented endpoint, you have a link to documentation available in JSD
 	* [Fetch and navigate through home timeline](#fetch-and-navigate-through-home-timeline)
 	* [Fetch and navigate through a user timeline](#fetch-and-navigate-through-a-user-timeline)
 	* [Post a new tweet with multiple images](#post-a-new-tweet-with-multiple-images)
-	* [Reply to a tweet with a video that have subtitles](#reply-to-a-tweet-with-a-video-that-have-subtitles)
+	* [Reply to a tweet with a video](#reply-to-a-tweet-with-a-video)
 	* [Stream tweets in real time](#stream-tweets-in-real-time)
-* [Users](#users)
-	* [Search users](#search-users)
-	* [Update profile banner](#update-profile-banner)
-	* [List pending follow requests](#list-pending-follow-requests)
 * [Direct messages](#direct-messages)
 	* [Send a direct message with an image](#send-a-direct-message-with-an-image)
-	* [Set a welcome direct message](#set-a-welcome-direct-message)
 * [Auth flow](#auth-flow)
 	* [Generate a auth link and get access tokens (OAuth 1.0a)](#generate-a-auth-link-and-get-access-tokens-oauth-10a)
 	* [Generate a auth link and get access tokens (OAuth 2)](#generate-a-auth-link-and-get-access-tokens-oauth-2)
@@ -112,14 +107,13 @@ const roClient = client.readOnly;
 Download tweets of home timeline and consume them with a paginator.
 
 ```ts
-// Home timeline is available in v1 API, so use .v1 prefix
-const homeTimeline = await client.v1.homeTimeline();
+const homeTimeline = await client.v2.homeTimeline();
 
 // Current page is in homeTimeline.tweets
 console.log(homeTimeline.tweets.length, 'fetched.');
 
 const nextHomePage = await homeTimeline.next();
-console.log('Fetched tweet IDs in next page:', nextHomePage.tweets.map(tweet => tweet.id_str));
+console.log('Fetched tweet IDs in next page:', nextHomePage.tweets.map(tweet => tweet.id));
 ```
 
 ### Fetch and navigate through a user timeline
@@ -166,18 +160,13 @@ await client.v2.tweet({
 });
 ```
 
-### Reply to a tweet with a video that have subtitles
+### Reply to a tweet with a video
 
 ```ts
-// A video which is more than 15MB must be uploaded with 'longmp4'
-const mediaIdVideo = await client.v1.uploadMedia('./test-video.mp4', { type: 'longmp4' });
-const mediaIdSubtitles = await client.v1.uploadMedia('./test-video-subtitles.srt');
+// The file is read and uploaded chunk by chunk
+const mediaIdVideo = await client.v2.uploadMedia('./test-video.mp4', { media_type: 'video/mp4' });
 
-// Associate subtitles and video
-await client.v1.createMediaSubtitles(mediaIdVideo, [{ language_code: 'en', display_name: 'English', media_id: mediaIdSubtitles }]);
-
-// Reply
-await client.v1.reply('Look at my video!', tweetIdToReply, { media_ids: mediaIdVideo });
+await client.v2.reply('Look at my video!', tweetIdToReply, { media: { media_ids: [mediaIdVideo] } });
 ```
 
 ### Stream tweets in real time
@@ -185,20 +174,25 @@ await client.v1.reply('Look at my video!', tweetIdToReply, { media_ids: mediaIdV
 Listen for a bunch of words using v2 stream filter API.
 
 ```ts
+// Filtered stream endpoints need app-only auth (Bearer token), while replying needs a user context
+const appClient = new TwitterApi('<YOUR-BEARER-TOKEN>');
+const userClient = new TwitterApi({ appKey, appSecret, accessToken, accessSecret });
+const { data: meAsUser } = await userClient.currentUserV2();
+
 // Get and delete old rules if needed
-const rules = await client.v2.streamRules();
+const rules = await appClient.v2.streamRules();
 if (rules.data?.length) {
-  await client.v2.updateStreamRules({
+  await appClient.v2.updateStreamRules({
     delete: { ids: rules.data.map(rule => rule.id) },
   });
 }
 
 // Add our rules
-await client.v2.updateStreamRules({
+await appClient.v2.updateStreamRules({
   add: [{ value: 'JavaScript' }, { value: 'NodeJS' }],
 });
 
-const stream = await client.v2.searchStream({
+const stream = await appClient.v2.searchStream({
   'tweet.fields': ['referenced_tweets', 'author_id'],
   expansions: ['referenced_tweets.id'],
 });
@@ -208,48 +202,13 @@ stream.autoReconnect = true;
 stream.on(ETwitterStreamEvent.Data, async tweet => {
   // Ignore RTs or self-sent tweets
   const isARt = tweet.data.referenced_tweets?.some(tweet => tweet.type === 'retweeted') ?? false;
-  if (isARt || tweet.data.author_id === meAsUser.id_str) {
+  if (isARt || tweet.data.author_id === meAsUser.id) {
     return;
   }
 
   // Reply to tweet
-  await client.v1.reply('Did you talk about JavaScript? love it!', tweet.data.id);
+  await userClient.v2.reply('Did you talk about JavaScript? love it!', tweet.data.id);
 });
-```
-
-## Users
-
-### Search users
-
-```ts
-const foundUsers = await client.v1.searchUsers('alki');
-
-// use an async for-of to iterate over the multiple result pages!
-for await (const user of foundUsers) {
-  console.log('User matching search:', user.screen_name);
-}
-```
-
-### Update profile banner
-
-```ts
-// Upload from a path (the same sources as .uploadMedia are accepted)
-await client.v1.updateAccountProfileBanner('./new-banner.png', { width: 450, height: 150, offset_left: 20 });
-const updatedProfile = await client.currentUser();
-const allBannerSizes = await client.v1.userProfileBannerSizes({ user_id: updatedProfile.id_str });
-
-console.log('New banner! Max size at URL:', allBannerSizes.sizes['1500x500'].url);
-```
-
-### List pending follow requests
-
-```ts
-const pendingRequests = await client.v1.friendshipsIncoming();
-const hydratedUsers = await client.v1.users({ user_id: pendingRequests.ids.slice(0, 100) });
-
-for (const user of hydratedUsers) {
-  console.log(user.screen_name, 'wants to follow you!');
-}
 ```
 
 ## Direct messages
@@ -257,22 +216,12 @@ for (const user of hydratedUsers) {
 ### Send a direct message with an image
 
 ```ts
-const imgMediaId = await client.v1.uploadMedia('./test-image.mp4', { target: 'dm' });
+const imgMediaId = await client.v2.uploadMedia('./test-image.jpg', { media_type: 'image/jpeg', media_category: 'dm_image' });
 
-await client.v1.sendDm({
-  recipient_id: '12',
+await client.v2.sendDmToParticipant('12', {
   text: 'Hello, have a great day :)',
-  attachment: { type: 'media', media: { id: imgMediaId } },
+  attachments: [{ media_id: imgMediaId }],
 });
-```
-
-### Set a welcome direct message
-
-```ts
-const welcomeDm = await client.v1.newWelcomeDm('Welcome DM hello :)', { text: 'Welcome to our chat! Please tell us whats happening.' });
-
-// This will handle all the boilerplate for you:
-await client.v1.setWelcomeDm(welcomeDm[EDirectMessageEventTypeV1.WelcomeCreate].id);
 ```
 
 ## Auth flow
@@ -324,9 +273,9 @@ console.log('Refresh token to store for client:', refreshToken);
 ## HTTP wrappers
 
 You can directly use HTTP wrappers to make custom requests.
-Requests under `.v1` are prefixed with `https://api.x.com/1.1/`, and under `.v2` are prefixed with `https://api.twitter/2/`.
+Requests under `.v1` are prefixed with `https://api.x.com/1.1/`, and under `.v2` are prefixed with `https://api.x.com/2/`.
 
-It means that if you need to use a different domain, for example `https://upload.x.com/1.1/`, you **must specify it manually** (see below).
+It means that if you need to use a different domain, for example `https://publish.x.com/`, you **must specify it manually** (see below).
 
 ### Make a GET HTTP request to a Twitter endpoint
 
@@ -336,12 +285,12 @@ const result = await client.v2.get('tweets/search/recent', { query: 'nodeJS', ma
 console.log(result.data); // TweetV2[]
 
 // With custom prefix
-const mediaStatus = await client.v1.get<MediaStatusV1Result>(
-  'media/upload.json',
-  { command: 'STATUS', media_id: '20' },
-  { prefix: 'https://upload.x.com/1.1/' },
+const embed = await client.v2.get<OembedTweetV1Result>(
+  'oembed',
+  { url: 'https://x.com/i/statuses/20' },
+  { prefix: 'https://publish.x.com/' },
 );
-console.log('Media is ready:', mediaStatus.processing_info.state === 'succeeded');
+console.log('Embed HTML:', embed.html);
 ```
 
 ### Build a POST query with a custom body
@@ -350,16 +299,16 @@ By default, `twitter-api-v2` tries to auto-detect the body format needed for the
 But if this doesn't work (fe Twitter error of invalid body format), you can build a request with a fixed body format.
 
 `forceBodyMode` property accepts:
-- `url` for URL-encoded bodies (most of v1.1 endpoints)
+- `url` for URL-encoded bodies (OAuth and v1.1 endpoints)
 - `form-data` for multipart/form-data encoded bodies (endpoints with file upload)
-- `json` for JSON-encoded bodies (v1.1 DMs & v2 endpoints)
+- `json` for JSON-encoded bodies (v2 endpoints)
 - `raw` if you've already encoded the body (the body **must be a `Buffer`**)
 
 ```ts
-// Manually upload a media with media/upload endpoint
-await client.v1.post(
-  'media/upload.json',
-  { command: 'APPEND', media_id: '20', segment_index: '0', media: fs.readFileSync('./media.jpg') },
-  { prefix: 'https://upload.x.com/1.1/', forceBodyMode: 'form-data' },
+// Manually upload a media chunk
+await client.v2.post(
+  'media/upload/20/append',
+  { segment_index: 0, media: fs.readFileSync('./media.jpg') },
+  { forceBodyMode: 'form-data' },
 );
 ```

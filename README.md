@@ -66,7 +66,7 @@ A small feature comparison with other libs:
 
 | Package        | API version(s)      | Response typings | Media helpers | Pagination | Subdeps |  Size (gzip)  | Install size  |
 | -------------- |---------------------| ---------------- | ------------- | ---------- | --------------- | -------------:|  -------------:|
-| twitter-api-v2 | v1.1, v2, labs, ads | ✅               | ✅             | ✅         | 0               | ~23 kB      | [![twitter-api-v2 install size badge](https://badgen.net/packagephobia/install/twitter-api-v2)](https://packagephobia.com/result?p=twitter-api-v2) |
+| twitter-api-v2 | v1.1, v2, ads       | ✅               | ✅             | ✅         | 0               | ~23 kB      | [![twitter-api-v2 install size badge](https://badgen.net/packagephobia/install/twitter-api-v2)](https://packagephobia.com/result?p=twitter-api-v2) |
 | twit           | v1.1                | ❌               | ✅             | ❌         | 51              | ~214.5 kB     | [![twit install size badge](https://badgen.net/packagephobia/install/twit)](https://packagephobia.com/result?p=twit) |
 | twitter        | v1.1                | ❌               | ❌             | ❌         | 50              | ~182.1 kB     | [![twitter install size badge](https://badgen.net/packagephobia/install/twitter)](https://packagephobia.com/result?p=twitter) |
 | twitter-lite   | v1.1, v2            | ❌               | ❌             | ❌         | 4               | ~5.3 kB       | [![twitter-lite install size badge](https://badgen.net/packagephobia/install/twitter-lite)](https://packagephobia.com/result?p=twitter-lite) |
@@ -87,8 +87,7 @@ Here's everything `twitter-api-v2` can do:
 - Automatic paginator for endpoints like user and tweet timelines,
   allowing payload consumption with modern asynchronous iterators until your rate-limit is hit
 - Convenient methods for authentication - generate auth links and ask for tokens to your users
-- Media upload with API v1.1, including **long video & subtitles support**, automatic media type detection,
-  **chunked upload** and support for **concurrent uploads**
+- **Chunked media upload** from file paths, file handles or buffers
 - Dedicated methods that wraps API v1.1 & v2 endpoints, with **typed arguments** and fully **typed responses**
 - Typed errors, meaningful error messages, error enumerations for both v1.1 and v2
 
@@ -109,7 +108,7 @@ Learn how to use the full potential of `twitter-api-v2`.
   - [Explore some examples](./doc/examples.md)
   - [Use and create plugins](./doc/plugins.md)
 - Use endpoints wrappers — ensure typings of request & response
-  - [Available endpoint wrappers for v1.1 API](./doc/v1.md)
+  - [Available endpoint wrappers for v1.1 API](./doc/v1.md) (mostly deprecated)
   - [Available endpoint wrappers for v2 API](./doc/v2.md)
   - [Use Twitter streaming endpoints (v1.1 & v2)](./doc/streaming.md)
 - Deep diving into requests
