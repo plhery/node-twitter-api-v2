@@ -154,9 +154,9 @@ for await (const tweet of jackTimeline) {
 // First, post all your images to Twitter
 const mediaIds = await Promise.all([
   // file path
-  client.v1.uploadMedia('./my-image.jpg'),
+  client.v2.uploadMedia('./my-image.jpg', { media_type: 'image/jpeg' }),
   // from a buffer, for example obtained with an image modifier package
-  client.v1.uploadMedia(Buffer.from(rotatedImage), { type: 'png' }),
+  client.v2.uploadMedia(Buffer.from(rotatedImage), { media_type: 'image/png' }),
 ]);
 
 // mediaIds is a string[], can be given to .tweet

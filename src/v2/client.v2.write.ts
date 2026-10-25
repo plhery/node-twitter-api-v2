@@ -1,3 +1,4 @@
+import type * as fs from 'fs';
 import { API_V2_PREFIX } from '../globals';
 import TwitterApiv2ReadOnly from './client.v2.read';
 import type {
@@ -21,10 +22,12 @@ import type {
   UserV2UnfollowResult,
   TweetV2BookmarkResult,
   EUploadMimeType,
+  TUploadableMedia,
 } from '../types';
 import TwitterApiv2LabsReadWrite from '../v2-labs/client.v2.labs.write';
 import { CreateDMConversationParams, PostDMInConversationParams, PostDMInConversationResult } from '../types/v2/dm.v2.types';
 import { MediaV2MediaCategory, MediaV2MetadataCreateParams, MediaV2MetadataCreateResult, MediaV2UploadAppendParams, MediaV2UploadInitParams, MediaV2UploadResponse } from '../types/v2/media.v2.types';
+import { getFileHandle, getFileSizeFromFileHandle, readNextPartOf } from '../v1/media-helpers.v1';
 
 /**
  * Base Twitter v2 client with read/write rights.
@@ -127,13 +130,14 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
    * Uploads media to Twitter using chunked upload.
    * https://docs.x.com/x-api/media/media-upload
    *
-   * @param media The media buffer to upload
+   * @param media The media to upload: a file path, a file handle or descriptor, or a buffer.
+   * Files are read chunk by chunk, so they're never fully loaded in memory. File handles and descriptors are left open.
    * @param options Upload options including media type and category, and additional owners
    * @param chunkSize Size of each chunk in bytes (default: 1MB)
    * @returns The media ID of the uploaded media
    */
   public async uploadMedia(
-    media: Buffer,
+    media: TUploadableMedia,
     options: { media_type: `${EUploadMimeType}` | EUploadMimeType; media_category?: MediaV2MediaCategory, additional_owners?: string[] },
     chunkSize: number = 1024 * 1024
   ): Promise<string> {
@@ -149,38 +153,50 @@ export default class TwitterApiv2ReadWrite extends TwitterApiv2ReadOnly {
       }
     }
 
-    const initArguments: MediaV2UploadInitParams = {
-      additional_owners: options.additional_owners,
-      media_type: options.media_type,
-      total_bytes: media.length,
-      media_category,
-    };
+    const fileHandle = await getFileHandle(media);
 
-    const initResponse = await this.post<MediaV2UploadResponse>('media/upload/initialize', initArguments);
-    const mediaId = initResponse.data.id;
-
-    const chunksCount = Math.ceil(media.length / chunkSize);
-    const mediaArray = new Uint8Array(media);
-    for (let i = 0; i < chunksCount; i++) {
-      const start = i * chunkSize;
-      const end = Math.min(start + chunkSize, media.length);
-      const mediaChunk = mediaArray.slice(start, end);
-      const chunkedBuffer = Buffer.from(mediaChunk);
-
-      const appendArguments: MediaV2UploadAppendParams = {
-        segment_index: i,
-        media: chunkedBuffer,
+    try {
+      const initArguments: MediaV2UploadInitParams = {
+        additional_owners: options.additional_owners,
+        media_type: options.media_type,
+        total_bytes: await getFileSizeFromFileHandle(fileHandle),
+        media_category,
       };
 
-      await this.post(`media/upload/${mediaId}/append`, appendArguments, { forceBodyMode: 'form-data' });
-    }
+      const initResponse = await this.post<MediaV2UploadResponse>('media/upload/initialize', initArguments);
+      const mediaId = initResponse.data.id;
 
-    const finalizeResponse = await this.post<MediaV2UploadResponse>(`media/upload/${mediaId}/finalize`);
-    if (finalizeResponse.data.processing_info) {
-      await this.waitForMediaProcessing(mediaId);
-    }
+      // Buffers are sliced, files are read into this buffer, reused for every chunk
+      const fileBuffer = fileHandle instanceof Buffer ? undefined : Buffer.alloc(chunkSize);
+      let offset = 0;
 
-    return mediaId;
+      for (let segmentIndex = 0; ; segmentIndex++) {
+        const [chunk, bytesRead] = await readNextPartOf(fileHandle, chunkSize, offset, fileBuffer);
+        if (!bytesRead) {
+          break;
+        }
+        offset += bytesRead;
+
+        const appendArguments: MediaV2UploadAppendParams = {
+          segment_index: segmentIndex,
+          media: chunk.subarray(0, bytesRead),
+        };
+
+        await this.post(`media/upload/${mediaId}/append`, appendArguments, { forceBodyMode: 'form-data' });
+      }
+
+      const finalizeResponse = await this.post<MediaV2UploadResponse>(`media/upload/${mediaId}/finalize`);
+      if (finalizeResponse.data.processing_info) {
+        await this.waitForMediaProcessing(mediaId);
+      }
+
+      return mediaId;
+    } finally {
+      // Only close the file opened from a path
+      if (typeof media === 'string') {
+        await (fileHandle as fs.promises.FileHandle).close();
+      }
+    }
   }
 
   private async waitForMediaProcessing(mediaId: string): Promise<void> {
