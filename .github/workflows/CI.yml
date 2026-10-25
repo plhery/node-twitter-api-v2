@@ -27,3 +27,5 @@ jobs:
       - run: npm run build
       # Offline tests: the ones calling the real X API are run by hand, with the Live tests workflow
       - run: npm test
+      # Installs the packed library and loads it with require() and import, like users do
+      - run: node test/package-exports.mjs
