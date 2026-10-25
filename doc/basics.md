@@ -8,9 +8,7 @@
 
 `twitter-api-v2` is made for Node.js: it uses Node's `https`, `zlib`, `crypto` and `fs` modules.
 
-- **Deno, Bun, edge runtimes**: they should work as long as they implement these Node.js modules,
-  for example Cloudflare Workers with [Node.js HTTP support](https://developers.cloudflare.com/workers/runtime-apis/nodejs/http/) enabled.
-  We don't test them, so please open an issue if something breaks.
+- **Deno and Bun**: they should work through their Node.js compatibility, but we don't test them, so please open an issue if something breaks.
 - **Browsers and React Native**: not supported. Your keys would be visible to anyone, and X's API doesn't allow cross-origin requests anyway.
   Call the X API from your server, and let your front-end talk to your server.
 

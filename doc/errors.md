@@ -145,8 +145,8 @@ X doesn't accept your credentials:
 
 ### 402 Payment Required
 
-Your account ran out of credits. X doesn't document this code yet, but pay-per-use accounts get it when their credit balance is used up:
-requests fail until you add credits in the Developer Console. See [X pricing](https://docs.x.com/x-api/getting-started/pricing).
+Your account probably ran out of credits. X blocks requests when your credit balance is used up, or when you reach the spending limit set in the Developer Console,
+until you add credits or the next billing cycle starts. X doesn't document which status code it sends then, but users report a 402. See [X pricing](https://docs.x.com/x-api/getting-started/pricing).
 
 ### 403 Forbidden
 
