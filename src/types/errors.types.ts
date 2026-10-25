@@ -164,6 +164,11 @@ interface IBuildApiResponseError {
   rateLimit?: TwitterRateLimit;
 }
 
+/** Last part of a v2 problem type, like `invalid-request`, the same on the api.twitter.com and api.x.com hosts */
+function getProblemName(type: unknown) {
+  return typeof type === 'string' ? type.split(/[/#]/).pop() : undefined;
+}
+
 export class ApiResponseError extends ApiError implements TwitterApiError, IBuildApiResponseError {
   protected _options: any;
 
@@ -212,20 +217,20 @@ export class ApiResponseError extends ApiError implements TwitterApiError, IBuil
   hasErrorCode(...codes: (EApiV1ErrorCode | number)[] | (EApiV2ErrorCode | string)[]) {
     const errors = this.errors;
 
-    // No errors
-    if (!errors?.length) {
-      return false;
-    }
-
     // v1 errors
-    if ('code' in errors[0]) {
+    if (errors?.length && 'code' in errors[0]) {
       const v1errors = errors as ErrorV1[];
       return v1errors.some(error => (codes as number[]).includes(error.code));
     }
 
-    // v2 error
-    const v2error = this.data as ErrorV2;
-    return (codes as string[]).includes(v2error.type);
+    // v2 errors: X gives a problem type to the whole error, to the items of its errors array, or to both
+    const v2errors = [this.data, ...(errors ?? [])] as Partial<ErrorV2>[];
+    const problems = (codes as string[]).map(getProblemName);
+
+    return v2errors.some(error => {
+      const problem = getProblemName(error?.type);
+      return problem !== undefined && problems.includes(problem);
+    });
   }
 
   get errors(): (ErrorV1 | ErrorV2)[] | undefined {
@@ -336,25 +341,40 @@ export enum EApiV1ErrorCode {
   OobOauthIsNotAllowed = 417,
 }
 
+/**
+ * Problem types of v2 errors, as given by X in the `type` of an error.
+ *
+ * X has given them on several hosts (api.twitter.com, api.x.com), so `hasErrorCode` only compares their last part.
+ */
 export enum EApiV2ErrorCode {
   // Request errors
-  InvalidRequest = 'https://developer.x.com/en/support/x-api/error-troubleshooting#invalid-request',
-  ClientForbidden = 'https://developer.x.com/en/support/x-api/error-troubleshooting#client-forbidden',
-  UnsupportedAuthentication = 'https://developer.x.com/en/support/x-api/error-troubleshooting#unsupported-authentication',
+  InvalidRequest = 'https://api.x.com/2/problems/invalid-request',
+  ClientForbidden = 'https://api.x.com/2/problems/client-forbidden',
+  UnsupportedAuthentication = 'https://api.x.com/2/problems/unsupported-authentication',
 
   // Stream rules errors
-  InvalidRules = 'https://developer.x.com/en/support/x-api/error-troubleshooting#invalid-rules',
-  TooManyRules = 'https://developer.x.com/en/support/x-api/error-troubleshooting#rule-cap',
-  DuplicatedRules = 'https://developer.x.com/en/support/x-api/error-troubleshooting#duplicate-rules',
+  InvalidRules = 'https://api.x.com/2/problems/invalid-rules',
+  TooManyRules = 'https://api.x.com/2/problems/rule-cap',
+  RuleTooLong = 'https://api.x.com/2/problems/rule-length',
+  DuplicatedRules = 'https://api.x.com/2/problems/duplicate-rules',
 
   // Twitter errors
-  RateLimitExceeded = 'https://developer.x.com/en/support/x-api/error-troubleshooting#usage-capped',
-  ConnectionError = 'https://developer.x.com/en/support/x-api/error-troubleshooting#streaming-connection',
-  ClientDisconnected = 'https://developer.x.com/en/support/x-api/error-troubleshooting#client-disconnected',
-  TwitterDisconnectedYou = 'https://developer.x.com/en/support/x-api/error-troubleshooting#operational-disconnect',
+  RateLimitExceeded = 'https://api.x.com/2/problems/rate-limit-exceeded',
+  UsageCapped = 'https://api.x.com/2/problems/usage-capped',
+  InternalError = 'https://api.x.com/2/problems/internal-error',
+  ConnectionError = 'https://api.x.com/2/problems/streaming-connection',
+  ClientDisconnected = 'https://api.x.com/2/problems/client-disconnected',
+  TwitterDisconnectedYou = 'https://api.x.com/2/problems/operational-disconnect',
 
   // Resource errors
-  ResourceNotFound = 'https://developer.x.com/en/support/x-api/error-troubleshooting#resource-not-found',
-  ResourceUnauthorized = 'https://developer.x.com/en/support/x-api/error-troubleshooting#not-authorized-for-resource',
-  DisallowedResource = 'https://developer.x.com/en/support/x-api/error-troubleshooting#disallowed-resource',
+  ResourceNotFound = 'https://api.x.com/2/problems/resource-not-found',
+  ResourceUnauthorized = 'https://api.x.com/2/problems/not-authorized-for-resource',
+  ResourceUnavailable = 'https://api.x.com/2/problems/resource-unavailable',
+  DisallowedResource = 'https://api.x.com/2/problems/disallowed-resource',
+  RecipientNotMessageable = 'https://api.x.com/2/problems/recipient-not-messageable',
+
+  // Field errors
+  FieldUnauthorized = 'https://api.x.com/2/problems/field-unauthorized',
+  NotAuthorizedForField = 'https://api.x.com/2/problems/not-authorized-for-field',
+  FieldHydrationFailure = 'https://api.x.com/2/problems/field-hydration-failure',
 }

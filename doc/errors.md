@@ -15,7 +15,7 @@ Some properties are common for both objects:
 - `requestError`, an instance of `Error` that has been thrown through `request.on('error')` handler
 
 ## Specific properties of `ApiPartialResponseError`
-- `responseError`, an instance of `Error` that has been thrown by `response.on('error')`, or by the tentative of parsing the result of a partial response
+- `responseError`, an instance of `Error` that has been thrown by `response.on('error')` or by the tentative of parsing the response body, or that tells that the connection was closed before the end of the response
 - `response`, containing raw node's `IncomingMessage` instance
 - `rawContent`, containing all the chunks received from distant server
 
@@ -30,7 +30,7 @@ Some properties are common for both objects:
 - (getter) `isAuthError`, `true` if this error is fired because logged user cannot do this action (invalid token, invalid app rights...)
 
 ## Specific methods of `ApiResponseError`
-- `hasErrorCode(code: number | EApiV1ErrorCode | EApiV2ErrorCode)`: Tells if given Twitter error code is present in error response
+- `hasErrorCode(code: number | EApiV1ErrorCode | EApiV2ErrorCode)`: Tells if given Twitter error code is present in error response. v2 problem types are compared by their last part (like `invalid-request`), so the `https://api.twitter.com/2/problems/…` and `https://api.x.com/2/problems/…` forms match each other
 
 ## Compression
 

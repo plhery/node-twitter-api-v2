@@ -6,7 +6,7 @@ import { ApiPartialResponseError, ApiRequestError } from '../src';
 import RequestHandlerHelper from '../src/client-mixins/request-handler.helper';
 
 describe('Request handler with a local keep-alive server (offline: no network or credentials needed)', () => {
-  let mode: 'ok' | 'drop' | 'cut' | 'hang' = 'ok';
+  let mode: 'ok' | 'drop' | 'cut' | 'cut-text' | 'until-close' | 'hang' = 'ok';
   let connections = 0;
 
   const server = http.createServer((req, res) => {
@@ -19,6 +19,16 @@ describe('Request handler with a local keep-alive server (offline: no network or
       res.setHeader('content-type', 'application/json');
       res.write('{"data":');
       setTimeout(() => req.socket.destroy(), 10);
+    } else if (mode === 'cut-text') {
+      res.setHeader('content-type', 'text/plain');
+      res.write('{"id":"1"}\n{"id":"2"}');
+      setTimeout(() => req.socket.destroy(), 10);
+    } else if (mode === 'until-close') {
+      // No content-length nor chunks: the body ends when the server closes the connection
+      res.useChunkedEncodingByDefault = false;
+      res.setHeader('content-type', 'text/plain');
+      res.write('{"id":"1"}\n');
+      setTimeout(() => res.end('{"id":"2"}'), 10);
     }
     // 'hang': never answer
   }).on('connection', () => connections++);
@@ -74,6 +84,19 @@ describe('Request handler with a local keep-alive server (offline: no network or
 
     const error = await request().then(() => null, (e: Error) => e);
     expect(error).to.be.instanceOf(ApiPartialResponseError);
+  });
+
+  it('Should reject when a response that is not JSON is cut midway', async () => {
+    mode = 'cut-text';
+
+    const error = await request().then(() => null, (e: Error) => e);
+    expect(error).to.be.instanceOf(ApiPartialResponseError);
+  });
+
+  it('Should resolve with a body that ends when the server closes the connection', async () => {
+    mode = 'until-close';
+
+    expect(await request()).to.deep.include({ data: '{"id":"1"}\n{"id":"2"}' });
   });
 
   it('Should reject on timeout, then keep working', async () => {
