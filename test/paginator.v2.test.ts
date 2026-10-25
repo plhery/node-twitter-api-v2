@@ -86,6 +86,22 @@ describe('v2 paginators: polling with previous()/fetchPrevious() (offline, no ne
       expect(paginator.done).to.equal(true);
       expect(paginator.meta.newest_id).to.equal('5');
     });
+
+    it('Should keep oldest_id when fetchNext returns an empty page, so until_id is still sent afterwards', async () => {
+      const { instance, calls } = makeFakeInstance([emptyPage(), emptyPage()]);
+      const paginator = new TweetSearchRecentV2Paginator({
+        realData: { data: [tweet('5', 'seed')], meta: { newest_id: '5', oldest_id: '5', result_count: 1, next_token: 'abc' } },
+        rateLimit: undefined as any,
+        instance,
+        queryParams: { query: 'grok' },
+      });
+
+      await paginator.fetchNext();
+      await paginator.fetchNext();
+
+      expect(calls[1].query).to.deep.equal({ query: 'grok', until_id: '5' });
+      expect(paginator.meta.oldest_id).to.equal('5');
+    });
   });
 
   describe('TweetUserTimelineV2Paginator (pagination_token cursor, TweetPaginableTimelineV2Paginator)', () => {
@@ -133,6 +149,25 @@ describe('v2 paginators: polling with previous()/fetchPrevious() (offline, no ne
       expect(paginator.meta.previous_token).to.equal('prev-2');
       expect(paginator.meta.newest_id).to.equal('9');
       expect(paginator.tweets.map(t => t.id)).to.deep.equal(['9', '5']);
+    });
+
+    it('Should keep oldest_id when fetchNext returns an empty page', async () => {
+      const { instance } = makeFakeInstance([emptyPage()]);
+      const paginator = new TweetUserTimelineV2Paginator({
+        realData: {
+          data: [tweet('5', 'seed')],
+          meta: { newest_id: '5', oldest_id: '5', result_count: 1, next_token: 'next-1' },
+        },
+        rateLimit: undefined as any,
+        instance,
+        queryParams: {},
+        sharedParams: { id: '42' },
+      });
+
+      await paginator.fetchNext();
+
+      expect(paginator.done).to.equal(true);
+      expect(paginator.meta.oldest_id).to.equal('5');
     });
   });
 
