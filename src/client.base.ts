@@ -92,7 +92,7 @@ export default abstract class TwitterApiBase {
   }
 
   public cloneWithPrefix(prefix: string): this {
-    const clone = (this.constructor as any)(this);
+    const clone = new (this.constructor as any)(this);
     (clone as TwitterApiBase).setPrefix(prefix);
 
     return clone;
@@ -163,13 +163,19 @@ export default abstract class TwitterApiBase {
       return this._currentUser.promise;
     }
 
-    this._currentUser = sharedPromise(() => this.get<UserV1>(
+    const currentUser = this._currentUser = sharedPromise(() => this.get<UserV1>(
       'account/verify_credentials.json',
       { tweet_mode: 'extended' },
       { prefix: API_V1_1_PREFIX },
     ));
+    // Don't cache a failure, so that the next call retries
+    currentUser.promise.catch(() => {
+      if (this._currentUser === currentUser) {
+        this._currentUser = null;
+      }
+    });
 
-    return this._currentUser.promise;
+    return currentUser.promise;
   }
 
   /**
@@ -188,9 +194,15 @@ export default abstract class TwitterApiBase {
       return this._currentUserV2.promise;
     }
 
-    this._currentUserV2 = sharedPromise(() => this.get<UserV2Result>('users/me', undefined, { prefix: API_V2_PREFIX }));
+    const currentUser = this._currentUserV2 = sharedPromise(() => this.get<UserV2Result>('users/me', undefined, { prefix: API_V2_PREFIX }));
+    // Don't cache a failure, so that the next call retries
+    currentUser.promise.catch(() => {
+      if (this._currentUserV2 === currentUser) {
+        this._currentUserV2 = null;
+      }
+    });
 
-    return this._currentUserV2.promise;
+    return currentUser.promise;
   }
 
   /* Direct HTTP methods */
