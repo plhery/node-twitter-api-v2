@@ -100,7 +100,8 @@ export abstract class TimelineV2Paginator<
     }
     else {
       this._realData.meta.result_count += result.meta.result_count;
-      this._realData.meta.previous_token = result.meta.previous_token;
+      // An empty response (nothing new) has no previous_token: keep the current one.
+      this._realData.meta.previous_token = result.meta.previous_token ?? this._realData.meta.previous_token;
       this._realData.data.unshift(...resultData);
     }
 

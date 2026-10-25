@@ -36,7 +36,8 @@ abstract class TweetTimelineV2Paginator<
       this._realData.data.push(...resultData);
     }
     else {
-      this._realData.meta.newest_id = result.meta.newest_id;
+      // An empty response (nothing new) has no newest_id: keep the current one, it is the since_id of the next poll.
+      this._realData.meta.newest_id = result.meta.newest_id ?? this._realData.meta.newest_id;
       this._realData.meta.result_count += result.meta.result_count;
       this._realData.data.unshift(...resultData);
     }
@@ -132,7 +133,8 @@ abstract class TweetPaginableTimelineV2Paginator<
       this._realData.meta.oldest_id = result.meta.oldest_id;
     }
     else {
-      this._realData.meta.newest_id = result.meta.newest_id;
+      // An empty response (nothing new) has no newest_id: keep the current one.
+      this._realData.meta.newest_id = result.meta.newest_id ?? this._realData.meta.newest_id;
     }
   }
 
