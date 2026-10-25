@@ -7,7 +7,7 @@ import { ApiPartialResponseError, ApiRequestError, ApiResponseError } from '../t
 import type { ErrorV1, ErrorV2, TwitterRateLimit, TwitterResponse } from '../types';
 import type { TRequestFullData, TRequestFullStreamData, TResponseParseMode } from '../types/request-maker.mixin.types';
 import * as zlib from 'zlib';
-import { Readable } from 'stream';
+import { pipeline, Readable } from 'stream';
 import { EventEmitter } from 'events';
 
 type TRequestReadyPayload = { req: ClientRequest, res: Readable, originalResponse: IncomingMessage, requestData: TRequestFullData | TRequestFullStreamData };
@@ -130,7 +130,7 @@ export class RequestHandlerHelper<T> {
         flush: zlib.constants.BROTLI_OPERATION_FLUSH,
         finishFlush: zlib.constants.BROTLI_OPERATION_FLUSH,
       });
-      res.pipe(brotli);
+      pipeline(res, brotli, () => undefined);
 
       return brotli;
     }
@@ -139,7 +139,7 @@ export class RequestHandlerHelper<T> {
         flush: zlib.constants.Z_SYNC_FLUSH,
         finishFlush: zlib.constants.Z_SYNC_FLUSH,
       });
-      res.pipe(gunzip);
+      pipeline(res, gunzip, () => undefined);
 
       return gunzip;
     }
@@ -148,7 +148,7 @@ export class RequestHandlerHelper<T> {
         flush: zlib.constants.Z_SYNC_FLUSH,
         finishFlush: zlib.constants.Z_SYNC_FLUSH,
       });
-      res.pipe(inflate);
+      pipeline(res, inflate, () => undefined);
 
       return inflate;
     }
@@ -277,6 +277,11 @@ export class RequestHandlerHelper<T> {
     dataStream.on('end', this.onResponseEndHandler.bind(this, resolve, reject));
     dataStream.on('close', this.onResponseCloseHandler.bind(this, resolve, reject));
 
+    if (dataStream !== res) {
+      // A body that can't be decompressed, or a response cut midway, never emits 'end' on the decompressor
+      dataStream.on('error', this.onResponseDecompressionErrorHandler.bind(this, reject));
+    }
+
     // Debug handlers
     if (this.requestData.requestEventDebugHandler) {
       this.requestData.requestEventDebugHandler('response', { res });
@@ -340,6 +345,10 @@ export class RequestHandlerHelper<T> {
     }
 
     // else: end has been called
+  }
+
+  protected onResponseDecompressionErrorHandler(reject: TResponseRejecter, error: Error) {
+    reject(this.createPartialResponseError(error, !this.res.complete));
   }
 
   protected streamResponseHandler(resolve: TReadyRequestResolver, reject: TResponseRejecter, res: IncomingMessage) {
