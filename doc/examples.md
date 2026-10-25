@@ -9,7 +9,7 @@ All the used entities (classes, interfaces, enums...) are imported from `twitter
 All returned types and parameters only reflect available data on Twitter API documentation.
 For each implemented endpoint, you have a link to documentation available in JSDoc comment.
 
-**Note:** Top-level use of `await` is not available in most of Node.js usage. You might need to wrap `await`s into async functions. See [MDN related documentation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function).
+**Note:** Top-level `await` only works in ES modules (`.mjs` files, or `"type": "module"` in your `package.json`). In CommonJS, wrap `await`s into async functions. See [MDN related documentation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function).
 
 <!-- vscode-markdown-toc -->
 * [Create a client](#create-a-client)
@@ -20,6 +20,7 @@ For each implemented endpoint, you have a link to documentation available in JSD
 	* [Fetch and navigate through home timeline](#fetch-and-navigate-through-home-timeline)
 	* [Fetch and navigate through a user timeline](#fetch-and-navigate-through-a-user-timeline)
 	* [Post a new tweet with multiple images](#post-a-new-tweet-with-multiple-images)
+	* [Upload a media from a URL](#upload-a-media-from-a-url)
 	* [Reply to a tweet with a video](#reply-to-a-tweet-with-a-video)
 	* [Stream tweets in real time](#stream-tweets-in-real-time)
 * [Direct messages](#direct-messages)
@@ -45,10 +46,11 @@ This kind of auth is needed for endpoint mentioned with `"OAuth 1.0a User contex
 Usually, this is used to act on behalf of a user.
 
 Access token and access secret are obtained through [the 3-legged auth flow](./auth.md).
+To act as your own account, you can also generate them in the X Developer Console. See [which credentials to use](./auth.md#which-credentials-to-use).
 
-- OAuth 1.0a User context (the most common, supports API v1.1 & v2)
+- OAuth 1.0a User context (supports API v1.1 & v2)
 
-This authentication method requires to use a couple of 4 keys, 2 are your app keys and 2 are obtained with the 3-legged auth flow.
+This authentication method requires to use a couple of 4 keys, 2 are your app keys and 2 are obtained with the 3-legged auth flow (or generated in the console for your own account).
 ```ts
 const client = new TwitterApi({
   appKey: '<YOUR-TWITTER-APP-TOKEN>',
@@ -91,7 +93,7 @@ This doesn't enforce anything at request level, but it will filter listed endpoi
 
 ```ts
 // By default, client are created with the max right-level (Read+Write+DMs)
-const client = new TwitterApi('<YOUR-TWITTER-BEARER-TOKEN>');
+const client = new TwitterApi({ appKey, appSecret, accessToken, accessSecret });
 
 // Read+Write level
 const rwClient = client.readWrite;
@@ -160,6 +162,23 @@ await client.v2.tweet({
 });
 ```
 
+Uploading media needs a user context: OAuth 1.0a, or an OAuth 2.0 user token with the `media.write` scope. A bearer token can't upload.
+
+### Upload a media from a URL
+
+`.uploadMedia()` takes a file path, a `Buffer` or a file handle, not a URL: `Buffer.from(url)` would upload the text of the URL.
+Download the file first:
+
+```ts
+const response = await fetch('https://example.com/image.jpg');
+const imageBuffer = Buffer.from(await response.arrayBuffer());
+const mediaId = await client.v2.uploadMedia(imageBuffer, { media_type: 'image/jpeg' });
+
+// From a base64 data URL (data:image/png;base64,...), remove the prefix first
+const pngBuffer = Buffer.from(dataUrl.split(',')[1], 'base64');
+const pngMediaId = await client.v2.uploadMedia(pngBuffer, { media_type: 'image/png' });
+```
+
 ### Reply to a tweet with a video
 
 ```ts
@@ -171,7 +190,10 @@ await client.v2.reply('Look at my video!', tweetIdToReply, { media: { media_ids:
 
 ### Stream tweets in real time
 
-Listen for a bunch of words using v2 stream filter API.
+Reply to the tweets that mention your bot, using v2 stream filter API.
+
+Since February 23, 2026, X only lets self-serve apps reply to a tweet when its author summoned them, by mentioning the replying account or quoting one of its posts
+([announcement](https://devcommunity.x.com/t/257909)). That's why this bot only listens to its mentions.
 
 ```ts
 // Filtered stream endpoints need app-only auth (Bearer token), while replying needs a user context
@@ -187,17 +209,16 @@ if (rules.data?.length) {
   });
 }
 
-// Add our rules
+// Add our rule: tweets that mention the bot
 await appClient.v2.updateStreamRules({
-  add: [{ value: 'JavaScript' }, { value: 'NodeJS' }],
+  add: [{ value: `@${meAsUser.username}` }],
 });
 
-const stream = await appClient.v2.searchStream({
+const stream = appClient.v2.searchStream({
   'tweet.fields': ['referenced_tweets', 'author_id'],
   expansions: ['referenced_tweets.id'],
+  autoConnect: false,
 });
-// Enable auto reconnect
-stream.autoReconnect = true;
 
 stream.on(ETwitterStreamEvent.Data, async tweet => {
   // Ignore RTs or self-sent tweets
@@ -207,9 +228,14 @@ stream.on(ETwitterStreamEvent.Data, async tweet => {
   }
 
   // Reply to tweet
-  await userClient.v2.reply('Did you talk about JavaScript? love it!', tweet.data.id);
+  await userClient.v2.reply('Thanks for the mention!', tweet.data.id);
 });
+
+// Retries the first connection too, and reconnects (with backoff) when X drops it
+await stream.connect({ autoReconnect: true, autoReconnectRetries: 'unlimited' });
 ```
+
+See the [streaming documentation](./streaming.md) for more about connections and reconnections.
 
 ## Direct messages
 
@@ -235,11 +261,14 @@ See also [authentication documentation](./auth.md) for examples and explanations
 ```ts
 // Create a partial client for auth links
 const client = new TwitterApi({ appKey: '<YOUR-TWITTER-APP-TOKEN>', appSecret: '<YOUR-TWITTER-APP-SECRET>' });
+// 'oob' is the PIN flow: once the user approves your app, X shows them a PIN to give you.
+// To redirect them to your website instead, give a callback URL registered in your app settings.
 const authLink = await client.generateAuthLink('oob');
 // Redirect your client to authLink.url
 console.log('Please go to', authLink.url);
 
-// ... user redirected to https://your-website.com?oauth_token=XXX&oauth_verifier=XXX after user app validation
+// ... the user approves your app and gets a PIN
+// (with a callback URL: user redirected to https://your-website.com?oauth_token=XXX&oauth_verifier=XXX)
 // Create a temporary client with previous-step tokens
 const connecterClient = new TwitterApi({
   appKey: '<YOUR-TWITTER-APP-TOKEN>',
@@ -247,8 +276,8 @@ const connecterClient = new TwitterApi({
   accessToken: authLink.oauth_token,
   accessSecret: authLink.oauth_token_secret,
 });
-// Validate verifier to get definitive access token & secret
-const { accessToken, accessSecret } = await connecterClient.login('<THE_OAUTH_VERIFIER>');
+// Validate the PIN (or the oauth_verifier of the callback URL) to get definitive access token & secret
+const { accessToken, accessSecret } = await connecterClient.login('<THE_PIN_OR_OAUTH_VERIFIER>');
 
 console.log('Access token and secret for logged client:', accessToken, accessSecret);
 ```
@@ -263,12 +292,14 @@ const { url, codeVerifier, state } = client.generateOAuth2AuthLink('<CALLBACK_UR
 console.log('Please go to', url);
 
 // ... user redirected to https://your-website.com?code=XXX&state=XXX after user app validation
-// Validate code to get access token
+// Validate code to get access token (a code only works once, for 30 seconds)
 const { client: loggedClient, accessToken, refreshToken } = await client.loginWithOAuth2({ code, codeVerifier, redirectUri: '<CALLBACK_URL>' });
 
 console.log('Access token for logged client:', accessToken);
 console.log('Refresh token to store for client:', refreshToken);
 ```
+
+If the code exchange fails, see [troubleshooting the OAuth2 flow](./auth.md#troubleshooting-the-oauth2-flow).
 
 ## HTTP wrappers
 

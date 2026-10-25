@@ -3,7 +3,7 @@
 This is a comprehensive guide of all helpers available for the Twitter API on both versions v1.1 and v2.
 
 <!-- vscode-markdown-toc -->
-* [Helpers for includes of v2 API responses](#helpers-for-includes-of-v2-API-responses)
+* [Helpers for includes of v2 API responses](#helpers-for-includes-of-v2-api-responses)
 	* [Simple usage](#simple-usage)
 	* [Available helper methods](#available-helper-methods)
 		* [Tweets](#tweets)
@@ -17,7 +17,6 @@ This is a comprehensive guide of all helpers available for the Twitter API on bo
 	* [Usage without instantiation](#usage-without-instantiation)
 * [Extract errors in an array](#extract-errors-in-an-array)
 * [Change image size of a profile picture](#change-image-size-of-a-profile-picture)
-* [Remove undefined properties from objects](#remove-undefined-properties-from-objects)
 
 <!-- vscode-markdown-toc-config
 	numbering=false
@@ -168,8 +167,8 @@ Examples:
 // For includes.tweets
 TwitterV2IncludesHelper.tweets(response)
 
-// For includes.retweets(tweet)
-TwitterV2IncludesHelper.retweets(response, tweet)
+// For includes.retweet(tweet)
+TwitterV2IncludesHelper.retweet(response, tweet)
 
 // For includes.medias(tweet)
 TwitterV2IncludesHelper.medias(response, tweet)
@@ -215,18 +214,4 @@ const { data: user } = await client.v2.me({ 'user.fields': ['profile_image_url']
 
 // Original profile img link
 const originalProfileImage = TwitterApi.getProfileImageInSize(user.profile_image_url!, 'original');
-```
-
-## Remove undefined properties from objects
-
-Use `trimUndefinedProperties` to remove `undefined` values from an object's own enumerable properties.
-This helper iterates over keys returned by `Object.keys`, leaving properties defined on the prototype chain untouched.
-
-```ts
-const proto = { inherited: 'value' };
-const obj = Object.create(proto);
-obj.keep = 1;
-obj.toRemove = undefined;
-trimUndefinedProperties(obj);
-// obj is now { keep: 1 } and still inherits `inherited`
 ```

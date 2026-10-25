@@ -6,14 +6,15 @@ The `twitter-api-v2` package includes experimental support for the Twitter Ads A
 
 ## Authentication & Base URL
 
-The Ads API uses the same OAuth flows as the main client. Create a `TwitterApi` instance with your credentials and access the Ads client through `client.ads`.
+The Ads API only accepts OAuth 1.0a user context: your app keys, plus the access token and secret of an account that can use the ads account.
+Create a `TwitterApi` instance with these credentials and access the Ads client through `client.ads`.
 
 The client automatically prefixes requests with the appropriate Ads API base URL, so you don't need to manage the base URL yourself.
 
 ```ts
 import { TwitterApi } from 'twitter-api-v2';
 
-const client = new TwitterApi({ /* your app credentials */ });
+const client = new TwitterApi({ appKey, appSecret, accessToken, accessSecret });
 
 // Access the Ads API
 const adsClient = client.ads;

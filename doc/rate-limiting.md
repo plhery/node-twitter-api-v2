@@ -16,9 +16,10 @@ const client = new TwitterApi(yourKeys, { plugins: [rateLimitPlugin] })
 await client.v2.me()
 // ...
 
-const currentRateLimitForMe = await rateLimitPlugin.v2.getRateLimit('users/me')
-console.log(currentRateLimitForMe.limit) // 75
-console.log(currentRateLimitForMe.remaining) // 74
+// Pass the full URL: the plugin's .v1 and .v2 shortcuts still use the old api.twitter.com URLs, so they find nothing
+const currentRateLimitForMe = await rateLimitPlugin.getRateLimit('https://api.x.com/2/users/me')
+console.log(currentRateLimitForMe?.limit) // 75
+console.log(currentRateLimitForMe?.remaining) // 74
 ```
 
 ## With HTTP methods helpers
@@ -33,8 +34,8 @@ manualFullResponse.data; // Tweetv2SearchResult
 // Rate limit information
 manualFullResponse.rateLimit; // { limit: number, remaining: number, reset: number }
 // Optional daily limits
-manualFullResponse.rateLimit.day; // Application 24h limit (if provided)
-manualFullResponse.rateLimit.userDay; // User 24h limit (if provided)
+manualFullResponse.rateLimit?.day; // Application 24h limit (if provided)
+manualFullResponse.rateLimit?.userDay; // User 24h limit (if provided)
 ```
 
 ## Handle errors - Everywhere in this library
@@ -50,7 +51,7 @@ import { ApiResponseError } from 'twitter-api-v2';
 
 try {
   // Get a single tweet
-  await client.v2.tweet('20');
+  await client.v2.singleTweet('20');
 } catch (error) {
   if (error instanceof ApiResponseError && error.rateLimitError && error.rateLimit) {
     console.log(`You just hit the rate limit! Limit for this endpoint is ${error.rateLimit.limit} requests!`);
@@ -88,13 +89,14 @@ async function autoRetryOnRateLimitError<T>(callback: () => T | Promise<T>) {
 }
 
 // Then use it...
-await autoRetryOnRateLimitError(() => client.v2.tweet('20'));
+await autoRetryOnRateLimitError(() => client.v2.singleTweet('20'));
 ```
 
 ## Special case of paginators
 
 Paginators will automatically handle the rate limit when using `.fetchLast` or async iteration.
-The `.fetchLast` or iteration will automatically ends when rate limit is hit.
+The `.fetchLast` or iteration will automatically end when the last response says no request is left (`remaining` is `0`) in the current window.
+If X answers with a 429 anyway (for example because of a 24-hour limit), the error is thrown, so wrap the loop in a `try`/`catch`.
 
 Moreover, you can access current rate limit status for paginator's endpoint with the `.rateLimit` getter.
 ```ts
