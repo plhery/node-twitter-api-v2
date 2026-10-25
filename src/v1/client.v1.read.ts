@@ -424,7 +424,7 @@ export default class TwitterApiv1ReadOnly extends TwitterApiSubClient {
    * Provides a simple, relevance-based search interface to public user accounts on Twitter.
    * https://developer.x.com/en/docs/twitter-api/v1/accounts-and-users/follow-search-get-users/api-reference/get-users-search
    *
-   * @deprecated v1.1 endpoint, no longer available on most X API plans. No v2 equivalent in this library.
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Use `v2.searchUsers()` instead.
    */
   public async searchUsers(query: string, options: Partial<UserSearchV1Params> = {}) {
     const queryParams: Partial<UserSearchV1Params> = {
@@ -803,7 +803,7 @@ export default class TwitterApiv1ReadOnly extends TwitterApiSubClient {
    * Note: The id parameter for this endpoint is the "where on earth identifier" or WOEID, which is a legacy identifier created by Yahoo and has been deprecated.
    * https://developer.x.com/en/docs/twitter-api/v1/trends/trends-for-location/api-reference/get-trends-place
    *
-   * @deprecated v1.1 endpoint, no longer available on most X API plans. No v2 equivalent in this library.
+   * @deprecated v1.1 endpoint, no longer available on most X API plans. Use `v2.trendsByWoeid()` instead.
    */
   public trendsByPlace(woeId: string | number, options: Partial<TrendsPlaceV1Params> = {}) {
     return this.get<TrendMatchV1[]>('trends/place.json', { id: woeId, ...options });

@@ -219,3 +219,19 @@ export type TweetV2UsageResult = DataV2<{
     usage: TUsageDaily[];
   }[];
 }>;
+
+/** Pay-per-use credit balance, in USD */
+export type UsageCreditsV2Result = DataV2<{
+  /** Spendable balance: `max(0, prepaid_balance + free_balance)` */
+  total_balance: number;
+  /** Purchased balance, negative when paid usage overdrew it */
+  prepaid_balance: number;
+  /** Remaining balance of the unexpired free grants */
+  free_balance: number;
+  /** Unexpired free grants, soonest expiry first */
+  free_grants: {
+    amount: number;
+    /** RFC 3339 date, omitted when the grant never expires */
+    expires_at?: string;
+  }[];
+}>;

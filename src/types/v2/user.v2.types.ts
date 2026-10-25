@@ -135,3 +135,22 @@ export interface UserV2 {
   subscription_type?: 'Basic' | 'Premium' | 'PremiumPlus' | 'None';
   verified_followers_count?: number;
 }
+
+// - Search users -
+
+export interface UserSearchV2Params {
+  query: string;
+  max_results?: number;
+  next_token?: string;
+  expansions?: TypeOrArrayOf<TUserV2Expansion> | string;
+  'tweet.fields'?: TypeOrArrayOf<TTweetv2TweetField> | string;
+  'user.fields'?: TypeOrArrayOf<TTweetv2UserField> | string;
+}
+
+export type UserSearchV2Result = DataMetaAndIncludeV2<UserV2[], { next_token?: string, previous_token?: string }, ApiV2Includes>;
+
+// - DM blocks -
+
+export type UserV2DmBlockResult = DataV2<{
+  blocked: boolean;
+}>;

@@ -4,7 +4,7 @@ import {
   AccessOAuth2TokenArgs,
   AccessOAuth2TokenResult,
   AccessTokenResult,
-  BearerTokenResult, BuildOAuth2RequestLinkArgs, IOAuth2RequestTokenResult, IParsedOAuth2TokenResult, LoginResult,
+  BearerTokenResult, BuildOAuth2RequestLinkArgs, ExchangeOAuth1TokenArgs, IOAuth2RequestTokenResult, IParsedOAuth2TokenResult, LoginResult,
   RequestTokenArgs,
   RequestTokenResult,
   TOAuth2Scope,
@@ -336,6 +336,44 @@ export default class TwitterApiReadOnly extends TwitterApiBase {
       client_id: this._requestMaker.clientId,
       client_secret: this._requestMaker.clientSecret,
     });
+
+    return this.parseOAuth2AccessTokenResult(accessTokenResult);
+  }
+
+  /**
+   * Exchange the OAuth 1.0a access token and secret of a user for OAuth 2.0 tokens, without asking the user to log in again.
+   * The scopes are the ones matching the user's OAuth 1.0a permissions, with `offline.access`, so a refresh token is always returned.
+   * Each exchange invalidates the OAuth 2.0 tokens obtained by the previous exchange of the same token.
+   *
+   * https://docs.x.com/fundamentals/authentication/oauth-2-0/oauth-1-0a-token-exchange
+   *
+   * ```ts
+   * // With the OAuth 2.0 client ID, and the client secret of a confidential client
+   * const requestClient = new TwitterApi({ clientId: 'yourClientId', clientSecret: 'yourClientSecret' });
+   *
+   * const { client: userClient, refreshToken } = await requestClient.exchangeOAuth1Token({
+   *  accessToken: 'oauth1AccessToken',
+   *  accessSecret: 'oauth1AccessSecret',
+   * });
+   * ```
+   */
+  async exchangeOAuth1Token({ accessToken, accessSecret, scope }: ExchangeOAuth1TokenArgs) {
+    if (!this._requestMaker.clientId) {
+      throw new Error(
+        'Twitter API instance is not initialized with client ID. ' +
+        'Please build an instance with: new TwitterApi({ clientId: \'<yourClientId>\' })',
+      );
+    }
+
+    const accessTokenResult = await this.post<AccessOAuth2TokenResult>('https://api.x.com/2/oauth2/token', {
+      grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+      subject_token: accessToken,
+      subject_token_type: 'urn:x:params:oauth:token-type:oauth1_token',
+      oauth_token_secret: accessSecret,
+      scope: Array.isArray(scope) ? scope.join(' ') : scope,
+      // Confidential clients authenticate with their secret in a Basic header instead
+      client_id: this._requestMaker.clientSecret ? undefined : this._requestMaker.clientId,
+    }, { forceBodyMode: 'url' });
 
     return this.parseOAuth2AccessTokenResult(accessTokenResult);
   }

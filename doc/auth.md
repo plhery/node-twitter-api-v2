@@ -265,3 +265,22 @@ const { client: refreshedClient, accessToken, refreshToken: newRefreshToken } = 
 // Example request
 await refreshedClient.v2.me();
 ```
+
+### Optional: migrate OAuth 1.0a users to OAuth 2.0
+
+Users who authorized your app with OAuth 1.0a can get OAuth 2.0 tokens without logging in again.
+`.exchangeOAuth1Token()` trades their access token and secret for an OAuth 2.0 access token and refresh token, with the scopes that match their OAuth 1.0a permissions ([X docs](https://docs.x.com/fundamentals/authentication/oauth-2-0/oauth-1-0a-token-exchange)).
+
+Create the client with your OAuth 2.0 client ID, plus the client secret for a confidential client.
+
+```ts
+const client = new TwitterApi({ clientId: '<YOUR-CLIENT-ID>', clientSecret: '<YOUR-CLIENT-SECRET>' });
+
+// Obtain the {accessToken} and {accessSecret} of the user from your DB/store
+const { client: oauth2Client, accessToken: newAccessToken, refreshToken } = await client.exchangeOAuth1Token({ accessToken, accessSecret });
+
+// Store {newAccessToken} and {refreshToken}, then refresh them with .refreshOAuth2Token()
+await oauth2Client.v2.me();
+```
+
+Exchanging the same OAuth 1.0a token again gives a new token pair and invalidates the previous one.

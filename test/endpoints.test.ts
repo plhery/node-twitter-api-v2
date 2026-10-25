@@ -36,6 +36,8 @@ describe('Requests sent by the client methods (offline: a fake X answers)', () =
         sends: 'GET api.x.com/2/tweets/20?expansions=author_id&tweet.fields=created_at,public_metrics',
       },
       { call: c => c.v2.tweets(['20', '21']), sends: 'GET api.x.com/2/tweets?ids=20,21' },
+      { call: c => c.v2.retweets('20', { max_results: 10 }), sends: 'GET api.x.com/2/tweets/20/retweets?max_results=10' },
+      { call: c => c.v2.retweetsOfMe(), sends: 'GET api.x.com/2/users/reposts_of_me' },
       {
         call: c => c.v2.search('from:jack "hello world" #x', { max_results: 10 }),
         sends: 'GET api.x.com/2/tweets/search/recent?max_results=10&query=from:jack "hello world" #x',
@@ -52,13 +54,19 @@ describe('Requests sent by the client methods (offline: a fake X answers)', () =
       { call: c => c.v2.user('12'), sends: 'GET api.x.com/2/users/12' },
       { call: c => c.v2.userByUsername('jack'), sends: 'GET api.x.com/2/users/by/username/jack' },
       { call: c => c.v2.usersByUsernames(['jack', 'x']), sends: 'GET api.x.com/2/users/by?usernames=jack,x' },
+      { call: c => c.v2.searchUsers('jack', { max_results: 10 }), sends: 'GET api.x.com/2/users/search?max_results=10&query=jack' },
       { call: c => c.v2.followers('12', { max_results: 100 }), sends: 'GET api.x.com/2/users/12/followers?max_results=100' },
       { call: c => c.v2.follow('12', '13'), sends: 'POST api.x.com/2/users/12/following', body: { target_user_id: '13' } },
       { call: c => c.v2.unfollow('12', '13'), sends: 'DELETE api.x.com/2/users/12/following/13' },
+      { call: c => c.v2.blockDms('13'), sends: 'POST api.x.com/2/users/13/dm/block' },
+      { call: c => c.v2.unblockDms('13'), sends: 'POST api.x.com/2/users/13/dm/unblock' },
       { call: c => c.v2.sendDmToParticipant('13', { text: 'hi' }), sends: 'POST api.x.com/2/dm_conversations/with/13/messages', body: { text: 'hi' } },
       { call: c => c.v2.listDmEvents({ 'dm_event.fields': ['sender_id'] }), sends: 'GET api.x.com/2/dm_events?dm_event.fields=sender_id' },
+      { call: c => c.v2.dmEvent('30', { 'dm_event.fields': ['sender_id'] }), sends: 'GET api.x.com/2/dm_events/30?dm_event.fields=sender_id' },
+      { call: c => c.v2.deleteDmEvent('30'), sends: 'DELETE api.x.com/2/dm_events/30' },
       { call: c => c.v2.createList({ name: 'friends' }), sends: 'POST api.x.com/2/lists', body: { name: 'friends' } },
       { call: c => c.v2.addListMember('3', '13'), sends: 'POST api.x.com/2/lists/3/members', body: { user_id: '13' } },
+      { call: c => c.v2.listsPinned('12'), sends: 'GET api.x.com/2/users/12/pinned_lists' },
       { call: c => c.v2.streamRules(), sends: 'GET api.x.com/2/tweets/search/stream/rules', bearer: true },
       {
         call: c => c.v2.updateStreamRules({ add: [{ value: 'cats has:images', tag: 'cats' }] }),
@@ -66,6 +74,13 @@ describe('Requests sent by the client methods (offline: a fake X answers)', () =
         body: { add: [{ value: 'cats has:images', tag: 'cats' }] },
         bearer: true,
       },
+      { call: c => c.v2.streamRuleCounts(), sends: 'GET api.x.com/2/tweets/search/stream/rules/counts', bearer: true },
+      { call: c => c.v2.streamConnections({ status: 'all' }), sends: 'GET api.x.com/2/connections?status=all', bearer: true },
+      { call: c => c.v2.terminateAllStreamConnections(), sends: 'DELETE api.x.com/2/connections/all', bearer: true },
+      { call: c => c.v2.terminateStreamConnections('filtered_stream'), sends: 'DELETE api.x.com/2/connections/filtered_stream', bearer: true },
+      { call: c => c.v2.usageCredits(), sends: 'GET api.x.com/2/usage/credits', bearer: true },
+      { call: c => c.v2.trendsByWoeid(1, { max_trends: 10 }), sends: 'GET api.x.com/2/trends/by/woeid/1?max_trends=10', bearer: true },
+      { call: c => c.v2.personalizedTrends(), sends: 'GET api.x.com/2/users/personalized_trends' },
       {
         call: c => c.v2.uploadMedia(Buffer.from('image'), { media_type: 'image/png' }),
         sends: ['POST api.x.com/2/media/upload/initialize', 'POST api.x.com/2/media/upload/42/append', 'POST api.x.com/2/media/upload/42/finalize'],
@@ -94,6 +109,26 @@ describe('Requests sent by the client methods (offline: a fake X answers)', () =
         }
       });
     }
+
+    it('searchUsers pages with next_token, not pagination_token', async () => {
+      x.on('GET', '/2/users/search', (res, req) => {
+        const page = req.url.searchParams.get('next_token') === 'page-2'
+          ? { data: [{ id: '2', name: 'Jack 2', username: 'jack2' }], meta: {} }
+          : { data: [{ id: '1', name: 'Jack', username: 'jack' }], meta: { next_token: 'page-2' } };
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify(page));
+      });
+
+      const paginator = await x.client().v2.searchUsers('jack', { max_results: 1 });
+      await paginator.fetchNext();
+
+      expect(x.requests.map(describeRequest)).to.deep.equal([
+        'GET api.x.com/2/users/search?max_results=1&query=jack',
+        'GET api.x.com/2/users/search?max_results=1&query=jack&next_token=page-2',
+      ]);
+      expect(paginator.users.map(user => user.id)).to.deep.equal(['1', '2']);
+      expect(paginator.done).to.equal(true);
+    });
   });
 
   describe('Authentication flows', () => {
@@ -155,6 +190,32 @@ describe('Requests sent by the client methods (offline: a fake X answers)', () =
       expect(x.requests[0].data).to.deep.include({ code: 'code', code_verifier: codeVerifier, redirect_uri: 'https://app.example/callback', grant_type: 'authorization_code', client_id: 'client-id' });
       expect(x.requests[1].data).to.deep.include({ refresh_token: 'first-refresh-token', grant_type: 'refresh_token', client_id: 'client-id' });
       expect(x.requests[2].headers.authorization).to.equal('Bearer refreshed-access-token');
+    });
+
+    it('OAuth 2.0: exchange OAuth 1.0a user tokens for an OAuth 2.0 token', async () => {
+      x.on('POST', '/2/oauth2/token', { body: { token_type: 'bearer', expires_in: 7200, access_token: 'exchanged-access-token', scope: 'tweet.read users.read' } });
+      const userTokens = { accessToken: 'user-token', accessSecret: 'user-secret' };
+
+      // Confidential client: Basic auth with the client secret
+      const exchanged = await x.client({ clientId: 'client-id', clientSecret: 'client-secret' }).exchangeOAuth1Token({ ...userTokens, scope: ['tweet.read', 'users.read'] });
+      expect(exchanged).to.deep.include({ accessToken: 'exchanged-access-token', expiresIn: 7200, scope: ['tweet.read', 'users.read'] });
+      await exchanged.client.v2.me();
+      // Public client: client_id in the body
+      await x.client({ clientId: 'client-id' }).exchangeOAuth1Token(userTokens);
+
+      expect(x.requests.map(describeRequest)).to.deep.equal(['POST api.x.com/2/oauth2/token', 'GET api.x.com/2/users/me', 'POST api.x.com/2/oauth2/token']);
+      const exchange = {
+        grant_type: 'urn:ietf:params:oauth:grant-type:token-exchange',
+        subject_token: 'user-token',
+        subject_token_type: 'urn:x:params:oauth:token-type:oauth1_token',
+        oauth_token_secret: 'user-secret',
+      };
+      expect(x.requests[0].headers['content-type']).to.match(/^application\/x-www-form-urlencoded/);
+      expect(x.requests[0].headers.authorization).to.equal('Basic ' + Buffer.from('client-id:client-secret').toString('base64'));
+      expect(x.requests[0].data).to.deep.equal({ ...exchange, scope: 'tweet.read users.read' });
+      expect(x.requests[1].headers.authorization).to.equal('Bearer exchanged-access-token');
+      expect(x.requests[2].headers.authorization).to.equal(undefined);
+      expect(x.requests[2].data).to.deep.equal({ ...exchange, client_id: 'client-id' });
     });
   });
 });
