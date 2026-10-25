@@ -3,6 +3,9 @@ name: Live tests
 # Calls the real X API with the repository secrets, and some calls are billed: run it by hand, before a release for example
 on: workflow_dispatch
 
+permissions:
+  contents: read
+
 jobs:
   live:
     runs-on: ubuntu-latest
