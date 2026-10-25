@@ -1,3 +1,14 @@
+1.30.0
+------
+- fix(paginators): v1 searchUsers fetchNext() and fetchLast() kept asking for page 2 #644 (@plhery)
+- fix(types): tweet entity lists and user description entities are optional #645 (@plhery)
+- feat(media): report the upload progress of v2.uploadMedia with onProgress #646 (@plhery)
+- refactor: remove the redundant socket close listener of requests #643 (@plhery)
+- fix: ApiRequestError.requestError was always undefined #642 (@plhery)
+- docs: deprecate retired v1.1 and Labs methods, flag Enterprise-only endpoints #641 (@plhery)
+- fix: reject instead of hanging when a compressed response fails #640 (@plhery)
+- feat(media): accept file paths and handles in v2.uploadMedia #639 (@plhery)
+
 1.29.2
 ------
 - fix(paginators): keep oldest_id when fetchNext() returns an empty page #638 (@plhery)
