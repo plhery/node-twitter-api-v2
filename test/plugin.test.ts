@@ -7,7 +7,7 @@ import type {
   ITwitterApiAfterRequestHookArgs,
   ITwitterApiAfterOAuth1RequestTokenHookArgs,
 } from '../src';
-import { TwitterApi } from '../src';
+import { TwitterApi, TwitterApiV2Settings } from '../src';
 import { FakeX } from './fake-x';
 
 const consumerKeys = { appKey: FakeX.userKeys.appKey, appSecret: FakeX.userKeys.appSecret };
@@ -93,5 +93,36 @@ describe('Plugin API (offline: a fake X answers)', () => {
     // Must login through
     // const { client: loggedClient, accessToken, accessSecret } = await loginPlugin.login(oauth_token, 'xxxxxxxx');
     // - Save accessToken, accessSecret to persistent storage
+  });
+
+  it('Wait for the OAuth 1.0a request token hook, and reject with its error', async () => {
+    x.on('POST', '/oauth/request_token', { body: 'oauth_token=request-token&oauth_token_secret=request-secret&oauth_callback_confirmed=true' });
+    const client = x.client(consumerKeys, {
+      plugins: [{ onOAuth1RequestToken: async () => { throw new Error('session store down'); } }],
+    });
+
+    const error = await client.generateAuthLink('oob').then(() => null, (e: Error) => e);
+
+    expect(error?.message).to.equal('session store down');
+  });
+
+  it('Log the error of an OAuth 2.0 request token hook, as the auth link is returned without waiting for it', async () => {
+    const client = x.client({ clientId: 'client-id' }, {
+      plugins: [{ onOAuth2RequestToken: async () => { throw new Error('session store down'); } }],
+    });
+    const logger = TwitterApiV2Settings.logger;
+    const logs: any[][] = [];
+    TwitterApiV2Settings.logger = { log: (...args: any[]) => logs.push(args) };
+
+    try {
+      const { url } = client.generateOAuth2AuthLink('https://example.com/callback', { scope: ['tweet.read'] });
+      await new Promise(resolve => setImmediate(resolve));
+
+      expect(url).to.match(/^https:\/\/x\.com\/i\/oauth2\/authorize\?/);
+      expect(logs).to.have.length(1);
+      expect(logs[0][1].message).to.equal('session store down');
+    } finally {
+      TwitterApiV2Settings.logger = logger;
+    }
   });
 });
