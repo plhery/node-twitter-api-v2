@@ -5,7 +5,13 @@ The v1.1 streaming endpoints are no longer available on most X API plans, so the
 
 <!-- vscode-markdown-toc -->
 * [Using streaming](#using-streaming)
+	* [Iterate with `for await`](#iterate-with-for-await)
 	* [Note: Use streaming without auto-connection feature](#note-use-streaming-without-auto-connection-feature)
+* [Keep a stream running](#keep-a-stream-running)
+	* [The first connection](#the-first-connection)
+	* [Reconnections and retries](#reconnections-and-retries)
+	* [One connection per app](#one-connection-per-app)
+	* [Bots that reply](#bots-that-reply)
 * [Specific API v1.1 implementations](#specific-api-v11-implementations)
 	* [Filter endpoint](#filter-endpoint)
 	* [Sample endpoint](#sample-endpoint)
@@ -35,13 +41,13 @@ For both V1 and V2 APIs, streaming methods returns a `TweetStream` object.
 Each event of `TweetStream` is stored into a TypeScript `enum`.
 
 ```ts
-import { ETwitterStreamEvent, TweetStream, TwitterApi, ETwitterApiError } from 'twitter-api-v2';
+import { ETwitterStreamEvent, TwitterApi } from 'twitter-api-v2';
 
-const client = new TwitterApi(); // (create a client)
+const client = new TwitterApi(); // (create a Bearer OAuth2 client)
 
-const stream = await client.v2.searchStream();
+// Create the stream without connecting it, to set its listeners and connection options first
+const stream = client.v2.searchStream({ autoConnect: false });
 
-// Awaits for a tweet
 stream.on(
   // Emitted when Node.js {response} emits a 'error' event (contains its payload).
   ETwitterStreamEvent.ConnectionError,
@@ -49,7 +55,7 @@ stream.on(
 );
 
 stream.on(
-  // Emitted when Node.js {response} is closed by remote or using .close().
+  // Emitted on .close(), or when the connection is lost and won't be retried.
   ETwitterStreamEvent.ConnectionClosed,
   () => console.log('Connection has been closed.'),
 );
@@ -66,19 +72,37 @@ stream.on(
   () => console.log('Twitter has a keep-alive packet.'),
 );
 
-// Enable reconnect feature
-stream.autoReconnect = true;
+// Connect. With autoReconnect, a failed first connection is retried too,
+// and the stream reconnects by itself when the connection is lost
+await stream.connect({ autoReconnect: true, autoReconnectRetries: 'unlimited' });
 
-// Be sure to close the stream where you don't want to consume data anymore from it
-stream.close();
+// Be sure to close the stream when you don't want to consume data from it anymore:
+// X allows a single connection to the filtered stream per app
+process.once('SIGTERM', () => stream.close());
+```
 
-// -- Alternative usage --
+See [Keep a stream running](#keep-a-stream-running) for how reconnections work.
 
-// You can also use async iterator to iterate over tweets!
+### Iterate with `for await`
+
+You can also iterate over the tweets with an async iterator:
+
+```ts
+const stream = client.v2.searchStream({ autoConnect: false });
+await stream.connect({ autoReconnect: true, autoReconnectRetries: 'unlimited' });
+
 for await (const { data } of stream) {
   console.log('This is my tweet:', data);
 }
+// Reached once stream.close() has been called
 ```
+
+- The loop gets every tweet in order, including the ones received while its body was running.
+- With `autoReconnect`, it goes on across reconnections. It ends when `stream.close()` or `stream.destroy()` is called, and throws an error if the reconnection attempts run out (`ReconnectLimitExceeded`).
+- Without `autoReconnect`, it throws the connection error when the connection is lost, after yielding the tweets already received.
+- It also throws when X sends a payload that can't be parsed (`TweetParseError`). The stream stays connected: start a new loop, or close it.
+- Leaving the loop (`break`, `return` or an exception) doesn't close the stream. Call `stream.close()` when you're done with it.
+- On a stream that is already closed, the loop ends right away.
 
 ### Note: Use streaming without auto-connection feature
 
@@ -100,8 +124,59 @@ stream.on(ETwitterStreamEvent.Data, console.log);
 stream.on(ETwitterStreamEvent.Connected, () => console.log('Stream is started.'));
 
 // Start stream!
-await stream.connect({ autoReconnect: true, autoReconnectRetries: Infinity });
+await stream.connect({ autoReconnect: true, autoReconnectRetries: 'unlimited' });
 ```
+
+## Keep a stream running
+
+### The first connection
+
+`await client.v2.searchStream()` connects right away, with `autoReconnect` off.
+If X refuses this first connection, the promise rejects and nothing retries it.
+Setting `stream.autoReconnect = true` afterwards only covers the connections lost later.
+
+To retry the first connection too, create the stream with `autoConnect: false`, then call `connect({ autoReconnect: true })`, like in [Using streaming](#using-streaming).
+
+### Reconnections and retries
+
+With `autoReconnect`, the stream reconnects when X closes the connection, on a network error, and when nothing has been received for `keepAliveTimeout` milliseconds (2 minutes by default, while X sends a keep-alive every 20 seconds).
+
+- The first reconnection attempt is made right away. After the n-th failed attempt, the stream waits `nextRetryTimeout(n, error)` milliseconds before the next one. The default delays are 5s, 15s, 30s, 1min, 1min30, 2min, 3min, 5min, 10min, then 15min.
+- After `autoReconnectRetries` failed attempts (5 by default), the stream gives up: it emits `ReconnectLimitExceeded`, then `ConnectionClosed`. Pass `autoReconnectRetries: 'unlimited'` to `connect()` to never give up, which is usually what a long-running bot wants.
+- Once a reconnection succeeds, the count starts over for the next lost connection.
+- `close()` and `destroy()` also stop a reconnection that is running or scheduled.
+
+X recommends exponential backoff, starting at 5 seconds for HTTP errors and at 1 minute for 429 errors ([X docs](https://docs.x.com/x-api/fundamentals/handling-disconnections)).
+`nextRetryTimeout` gets the error, so you can follow this advice:
+
+```ts
+import { ApiResponseError } from 'twitter-api-v2';
+
+await stream.connect({
+  autoReconnect: true,
+  autoReconnectRetries: 'unlimited',
+  nextRetryTimeout: (tryOccurrence, error) => {
+    // Starts at 1 minute for a 429 error and at 5 seconds otherwise, doubles each time, up to 15 minutes
+    const firstDelay = error instanceof ApiResponseError && error.code === 429 ? 60 * 1000 : 5 * 1000;
+    return Math.min(firstDelay * 2 ** (tryOccurrence - 1), 15 * 60 * 1000);
+  },
+});
+```
+
+### One connection per app
+
+On pay-per-use plans, X allows one connection to the filtered stream per app ([X docs](https://docs.x.com/x-api/posts/filtered-stream/introduction)).
+Another connection is refused with a 429 error, whose `data.connection_issue` is `'TooManyConnections'`.
+That happens when an older connection is still open: another instance of your app, a stream you didn't close, or the connection of a process that crashed, which X keeps open for a while.
+
+- Close the stream (`close()` or `destroy()`) when you stop using it, f.e. on shutdown.
+- Create one stream and let it reconnect, instead of creating a new stream after each disconnection.
+- X's [Connections API](https://docs.x.com/x-api/connections/introduction) closes the open connections of your app: `await client.v2.delete('connections/all')`, with your Bearer OAuth2 client.
+
+### Bots that reply
+
+Since February 2026, X only lets apps on self-serve plans reply to a post when its author has summoned the app's account, by mentioning it or quoting one of its posts. Other replies are rejected ([X changelog](https://docs.x.com/changelog)).
+So a bot that replies to the tweets of its stream should use a rule that matches those posts, like `@yourbot`, rather than reply to every tweet that matches a keyword.
 
 ## Specific API v1.1 implementations
 
@@ -159,7 +234,7 @@ Method: **`v2.searchStream`**.
 
 Endpoint: `tweets/search/stream`.
 
-Reference: https://developer.x.com/en/docs/twitter-api/tweets/filtered-stream/api-reference/get-tweets-search-stream
+Reference: https://docs.x.com/x-api/stream/stream-filtered-posts
 
 Level: **Read-only**.
 
@@ -177,7 +252,7 @@ Method: **`v2.streamRules`**.
 
 Endpoint: `tweets/search/stream/rules (GET)`.
 
-Reference: https://developer.x.com/en/docs/twitter-api/tweets/filtered-stream/api-reference/get-tweets-search-stream-rules
+Reference: https://docs.x.com/x-api/stream/get-stream-rules
 
 Level: **Read-only**.
 
@@ -199,8 +274,8 @@ if (rules.meta.next_token) {
   });
 }
 
-// Log every rule ID
-console.log(rules.data.map(rule => rule.id));
+// Log every rule ID (X leaves out `data` when there are no rules)
+console.log((rules.data ?? []).map(rule => rule.id));
 ```
 
 ### Search endpoint - Add or delete rules
@@ -209,7 +284,7 @@ Method: **`v2.updateStreamRules`**.
 
 Endpoint: `tweets/search/stream/rules (POST)`.
 
-Reference: https://developer.x.com/en/docs/twitter-api/tweets/filtered-stream/api-reference/post-tweets-search-stream-rules
+Reference: https://docs.x.com/x-api/stream/update-stream-rules
 
 Level: **Read-write**.
 
@@ -265,7 +340,7 @@ Method: **`v2.sampleStream`**.
 
 Endpoint: `tweets/sample/stream`.
 
-Reference: https://developer.x.com/en/docs/twitter-api/tweets/sampled-stream/api-reference/get-tweets-sample-stream
+Reference: https://docs.x.com/x-api/stream/stream-sampled-posts
 
 Level: **Read-only**.
 
@@ -287,7 +362,7 @@ Method: **`v2.sample10Stream()`**.
 
 Endpoint: `tweets/sample10/stream`.
 
-Reference: https://developer.x.com/en/docs/twitter-api/tweets/volume-streams/api-reference/get-tweets-sample10-stream
+Reference: https://docs.x.com/x-api/stream/stream-10-sampled-posts
 
 Level: **Read-only**.
 
@@ -356,21 +431,21 @@ const sampleFilterv2 = await client.v2.getStream('tweets/sample/stream');
 ### Methods / properties
 
 - `.autoReconnect: boolean` / defaults `false` / Set this to `true` to enable reconnect feature.
-- `.autoReconnectRetries: number` / default `5` / If `autoReconnect` is `true`, maximum tries made until give up. Each try is spaced by return of `.nextRetryTimeout()` call milliseconds.
+- `.autoReconnectRetries: number` / default `5` / If `autoReconnect` is `true`, number of failed reconnection attempts before giving up. Each try is spaced by return of `.nextRetryTimeout()` call milliseconds. `Infinity` never gives up (`autoReconnectRetries: 'unlimited'` in `.connect()`). See [Reconnections and retries](#reconnections-and-retries).
 - `.keepAliveTimeoutMs: number` / default `120000` (2 minutes) / Defined whenever connection should be automatically closed if nothing is received from Twitter during this time (it should not happen in any situation, because Twitter sends keep-alive packets). **Can be set to `Infinity` to disable this feature**.
-- `.nextRetryTimeout: TStreamConnectRetryFn` / Override this function that takes a `tryOccurrence` (starting from 1) and returns the number of milliseconds to wait before trying to reconnect to Twitter.
-- `.close()`: Emits `ConnectionClosed` event and terminates connection.
+- `.nextRetryTimeout: TStreamConnectRetryFn` / Override this function that takes a `tryOccurrence` (starting from 1) and the error of the failed attempt, and returns the number of milliseconds to wait before trying to reconnect to Twitter.
+- `.close()`: Emits `ConnectionClosed` event and terminates connection. Also stops a reconnection that is running or scheduled, and ends the `for await` loops on the stream.
 - `.destroy()`: Same as `close()`, but unbind all registered event listeners before.
 - `.clone(): Promise<TweetStream>`: Returns a new `TweetStream` with the same request parameters, with the same event listeners bound.
-- `.reconnect(): Promise<void>`: Tries to make a new request to Twitter with the same original parameters. If successful, continue streaming with new response.
-- `.connect(params?: IConnectTweetStreamParams): Promise<TweetStream>`: Connect the stream. Only if `autoConnect` has been set to `false` when stream is created.
+- `.reconnect(): Promise<void>`: Tries to make a new request to Twitter with the same original parameters. If successful, continue streaming with new response. It also reopens a closed stream.
+- `.connect(params?: IConnectTweetStreamParams): Promise<TweetStream>`: Connect the stream. Only if `autoConnect` has been set to `false` when stream is created. Params: `autoReconnect`, `autoReconnectRetries` (a number or `'unlimited'`), `keepAliveTimeout` (milliseconds or `'disable'`) and `nextRetryTimeout`.
 
 ### Events
 
 All events are part of enum `ETwitterStreamEvent` exported by the package.
 
 - `.ConnectionError`: Emitted with the `err` parameter given by `request.on('error')` or `response.on('error')` handlers.
-- `.ConnectionClosed`: Emitted when `.close()` is called or when the connection is manually closed by distant server.
+- `.ConnectionClosed`: Emitted when `.close()` is called, or when the connection is lost and won't be retried (`autoReconnect` is off, or the retries ran out).
 - `.ConnectionLost`: When nothing is received from Twitter during `.keepAliveTimeoutMs` milliseconds, emit this event and start either close or reconnection process.
 - `.ReconnectAttempt`: Emitted **before** a reconnect attempt is made (payload: attempt `number`).
 - `.Connected`: Emitted when the initial connection attempt succeeds. (only using manual `.connect()` after creating a stream with `autoConnect: false`)
@@ -382,4 +457,4 @@ All events are part of enum `ETwitterStreamEvent` exported by the package.
 - `.Data`: Emitted with stream data, when Twitter sends something.
 - `.DataError`: Emitted when Twitter sends a JSON error payload.
 - `.TweetParseError`: When the thing sent by Twitter cannot be JSON-parsed. Contains the parse error.
-- `.Error`: Emitted either when a `.ConnectionError` or a `.TweetParseError` occurs. Contains `{ type: .ConnectionError | .TweetParseError, error: any }`.
+- `.Error`: Emitted when a `.ConnectionError`, `.TweetParseError`, `.DataError`, `.ConnectError` or `.ReconnectError` occurs. Contains `{ type, error: any, message }`, where `type` is the event that occurred.

@@ -51,6 +51,10 @@ export class TweetStream<T = any> extends EventEmitter {
   protected keepAliveTimeout?: NodeJS.Timeout;
   protected parser = new TweetStreamParser();
   protected connectionProcessRunning = false;
+  /** Set by close(), so that a reconnection running or scheduled at that time doesn't reopen the stream */
+  protected closed = false;
+  /** Event combiners of the running `for await` loops */
+  protected eventCombiners = new Set<TweetStreamEventCombiner<T>>();
 
   protected req?: ClientRequest;
   protected res?: Readable;
@@ -211,6 +215,7 @@ export class TweetStream<T = any> extends EventEmitter {
 
   /** Terminate connection to Twitter. */
   close() {
+    this.closed = true;
     this.emit(ETwitterStreamEvent.ConnectionClosed);
     this.closeWithoutEmit();
   }
@@ -219,6 +224,10 @@ export class TweetStream<T = any> extends EventEmitter {
   destroy() {
     this.removeAllListeners();
     this.close();
+    // The listeners of the running `for await` loops are gone too, so end the loops here
+    for (const eventCombiner of this.eventCombiners) {
+      eventCombiner.end();
+    }
   }
 
   /**
@@ -294,6 +303,8 @@ export class TweetStream<T = any> extends EventEmitter {
     }
 
     this.connectionProcessRunning = true;
+    // An explicit call reopens a closed stream (automatic retries check `closed` before calling it)
+    this.closed = false;
 
     try {
       let initialConnection = true;
@@ -304,6 +315,13 @@ export class TweetStream<T = any> extends EventEmitter {
       }
 
       const { req, res, originalResponse } = await new RequestHandlerHelper(this.requestData).makeRequestAndResolveWhenReady();
+
+      // close() was called while the request was pending: don't reopen the stream
+      if (this.closed) {
+        res.destroy();
+        req.destroy();
+        return;
+      }
 
       this.req = req;
       this.res = res;
@@ -322,6 +340,11 @@ export class TweetStream<T = any> extends EventEmitter {
     // Close the request if necessary
     this.closeWithoutEmit();
 
+    // Closed meanwhile, f.e. by a listener of the connection error
+    if (this.closed) {
+      return;
+    }
+
     // Terminate stream by events if necessary (no auto-reconnect or retries exceeded)
     if (!this.autoReconnect) {
       this.emit(ETwitterStreamEvent.ConnectionClosed);
@@ -336,8 +359,16 @@ export class TweetStream<T = any> extends EventEmitter {
     // If all other conditions fails, do a reconnect attempt
     try {
       this.emit(ETwitterStreamEvent.ReconnectAttempt, retryOccurrence);
+      // A listener of the attempt can close the stream
+      if (this.closed) {
+        return;
+      }
       await this.reconnect();
     } catch (e) {
+      // Closed during the attempt: no more retries
+      if (this.closed) {
+        return;
+      }
       this.emit(ETwitterStreamEvent.ReconnectError, retryOccurrence);
       this.emit(ETwitterStreamEvent.Error, {
         type: ETwitterStreamEvent.ReconnectError,
@@ -350,6 +381,11 @@ export class TweetStream<T = any> extends EventEmitter {
   }
 
   protected makeAutoReconnectRetry(retryOccurrence: number, error: any) {
+    // Closed meanwhile, f.e. by a listener of the error
+    if (this.closed) {
+      return;
+    }
+
     const nextRetry = this.nextRetryTimeout(retryOccurrence + 1, error);
 
     this.retryTimeout = setTimeout(() => {
@@ -358,24 +394,37 @@ export class TweetStream<T = any> extends EventEmitter {
   }
 
   async *[Symbol.asyncIterator](): AsyncGenerator<T, void, undefined> {
+    if (this.closed) {
+      return;
+    }
+    // Not connected (never, or connection lost for good), and no connection attempt running or scheduled
+    if ((!this.req || this.req.destroyed) && !this.connectionProcessRunning && !this.retryTimeout) {
+      throw new Error('Connection closed');
+    }
+
     const eventCombiner = new TweetStreamEventCombiner(this);
+    this.eventCombiners.add(eventCombiner);
 
     try {
       while (true) {
-        if (!this.req || this.req.aborted) {
-          throw new Error('Connection closed');
-        }
-
+        // Tweets received meanwhile come first, even when the stream has ended since
         if (eventCombiner.hasStack()) {
           yield* eventCombiner.popStack();
+          continue;
         }
 
-        const { type, payload } = await eventCombiner.nextEvent();
-        if (type === 'error') {
-          throw payload;
+        const ending = eventCombiner.getEnding();
+        if (ending) {
+          if (ending.error) {
+            throw ending.error;
+          }
+          return;
         }
+
+        await eventCombiner.nextEvent();
       }
     } finally {
+      this.eventCombiners.delete(eventCombiner);
       eventCombiner.destroy();
     }
   }
