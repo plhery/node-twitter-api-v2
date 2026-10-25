@@ -18,4 +18,13 @@ jobs:
       - name: Update npm
         run: npm install -g npm@latest
       - run: npm ci
+      - name: Check that the release tag matches the package version
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Release tag $GITHUB_REF_NAME does not match package.json version $version"
+            exit 1
+          fi
+      # The deprecated prepublish script runs on npm ci but not on npm publish: build explicitly
+      - run: npm run build
       - run: npm publish --provenance --access public
