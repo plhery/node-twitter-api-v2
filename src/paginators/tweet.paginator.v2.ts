@@ -30,7 +30,8 @@ abstract class TweetTimelineV2Paginator<
     }
 
     if (isNextPage) {
-      this._realData.meta.oldest_id = result.meta.oldest_id;
+      // An empty response (end of results) has no oldest_id: keep the current one, it is the until_id used when there is no next_token.
+      this._realData.meta.oldest_id = result.meta.oldest_id ?? this._realData.meta.oldest_id;
       this._realData.meta.result_count += result.meta.result_count;
       this._realData.meta.next_token = result.meta.next_token;
       this._realData.data.push(...resultData);
@@ -130,7 +131,8 @@ abstract class TweetPaginableTimelineV2Paginator<
     const result = response.data;
 
     if (isNextPage) {
-      this._realData.meta.oldest_id = result.meta.oldest_id;
+      // An empty response (end of results) has no oldest_id: keep the current one.
+      this._realData.meta.oldest_id = result.meta.oldest_id ?? this._realData.meta.oldest_id;
     }
     else {
       // An empty response (nothing new) has no newest_id: keep the current one.
