@@ -2,6 +2,7 @@ import TwitterApiv1 from '../v1/client.v1';
 import TwitterApiv2 from '../v2/client.v2';
 import { TwitterApiError } from '../types';
 import TwitterApiReadWrite from './readwrite';
+import TwitterApiReadOnly from './readonly';
 import TwitterAds from '../ads/client.ads';
 
 
@@ -84,6 +85,6 @@ export class TwitterApi extends TwitterApiReadWrite {
   }
 }
 
-export { default as TwitterApiReadWrite } from './readwrite';
-export { default as TwitterApiReadOnly } from './readonly';
+// Not `export { default as … } from`: TypeScript compiles it to getters, that Node 22 and older don't see as named exports of a CommonJS module
+export { TwitterApiReadWrite, TwitterApiReadOnly };
 export default TwitterApi;
