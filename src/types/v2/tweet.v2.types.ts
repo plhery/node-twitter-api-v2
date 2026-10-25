@@ -38,6 +38,10 @@ export interface TweetV2UserTimelineParams extends TweetV2PaginableTimelineParam
   exclude?: TypeOrArrayOf<'retweets' | 'replies'>;
 }
 
+export interface TweetV2QuoteTweetsParams extends TweetV2PaginableTimelineParams {
+  exclude?: TypeOrArrayOf<'retweets' | 'replies'>;
+}
+
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface TweetV2HomeTimelineParams extends TweetV2UserTimelineParams { }
 
@@ -65,6 +69,10 @@ export interface Tweetv2FieldsParams {
 
 export interface TweetSearchV2StreamParams extends Tweetv2FieldsParams {
   backfill_minutes: number;
+  /** ISO date string, the earliest Tweets to recover */
+  start_time?: string;
+  /** ISO date string, the latest Tweets to recover */
+  end_time?: string;
 }
 
 // - Tweet count -
@@ -76,6 +84,7 @@ export interface TweetV2CountParams {
   until_id?: string;
   since_id?: string;
   granularity?: 'day' | 'hour' | 'minute';
+  'search_count.fields'?: TypeOrArrayOf<'start' | 'end' | 'tweet_count'> | string;
 }
 
 export interface TweetV2CountAllParams extends TweetV2CountParams {
@@ -116,7 +125,7 @@ export type TweetV2SingleStreamResult = TweetV2SingleResult & {
 
 /// Tweet
 
-export type TweetV2PostTweetResult = DataV2<{ id: string, text: string }>;
+export type TweetV2PostTweetResult = DataV2<{ id: string, text: string, edit_history_tweet_ids?: string[] }>;
 
 /// -- Replies --
 

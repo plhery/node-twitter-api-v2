@@ -63,6 +63,7 @@ export interface ReferencedTweetV2 {
 export interface TweetAttachmentV2 {
   media_keys?: string[];
   poll_ids?: string[];
+  media_source_tweet_id?: string[];
 }
 
 export interface TweetGeoV2 {
@@ -155,6 +156,7 @@ export interface TweetNonPublicMetricsV2 {
   impression_count: number;
   url_link_clicks: number;
   user_profile_clicks: number;
+  engagements?: number;
 }
 
 export interface TweetOrganicMetricsV2 {
@@ -181,19 +183,55 @@ export interface NoteTweetV2 {
 
 export type NoteTweetEntitiesV2 = Omit<TweetEntitiesV2, 'annotations'>;
 
-export type TTweetReplySettingsV2 = 'mentionedUsers' | 'following' | 'everyone';
+export type TTweetReplySettingsV2 = 'mentionedUsers' | 'following' | 'everyone' | 'subscribers' | 'verified';
 
 export interface TweetArticleV2 {
   cover_media?: MediaObjectV2;
   media_entities?: MediaObjectV2[];
 }
 
+export interface TweetScopesV2 {
+  /** Whether the visibility of this Tweet is limited to the author's followers. */
+  followers: boolean;
+}
+
+export interface TweetMediaMetadataV2 {
+  media_key?: string;
+  alt_text?: string;
+  description?: string;
+  title?: string;
+}
+
+export interface TweetMatchedMediaNoteV2 {
+  match_status?: string;
+  note_id?: string;
+}
+
+export interface TweetNoteRequestSuggestionV2 {
+  source_link?: string;
+  suggestion?: string;
+  suggestion_id?: string;
+}
+
+export interface TweetSuggestedSourceLinkV2 {
+  url?: string;
+  count?: number;
+}
+
 export interface SendTweetV2Params {
+  card_uri?: string;
   direct_message_deep_link?: string;
-  for_super_followers_only?: 'True' | 'False';
+  /** Edits one of your recent Tweets instead of creating a new one. */
+  edit_options?: {
+    previous_post_id: string;
+  };
+  /** X documents a boolean. The `'True'` and `'False'` strings are kept for backward compatibility. */
+  for_super_followers_only?: boolean | 'True' | 'False';
   geo?: {
     place_id: string;
   };
+  /** Discloses that the Tweet contains AI-generated media. */
+  made_with_ai?: boolean;
   media?: {
     media_ids?:
       | [string]
@@ -201,7 +239,28 @@ export interface SendTweetV2Params {
       | [string, string, string]
       | [string, string, string, string];
     tagged_user_ids?: string[];
+    /** Rendered on the Tweet card for video and Amplify content. */
+    title?: string;
+    /** Rendered on the Tweet card for video and Amplify content. */
+    description?: string;
+    /** ID of the media whose asset is used as the preview image. */
+    preview_media_id?: string;
+    /** When true, the media URLs don't expire and external syndicated playback is allowed. */
+    embeddable?: boolean;
+    call_to_actions?: {
+      app_install?: {
+        app_store_id?: string;
+        ipad_app_store_id?: string;
+        play_store_id?: string;
+      };
+      visit_site?: { url: string };
+      watch_now?: { url: string };
+    };
   };
+  /** If true, the Tweet isn't shown in the public timeline. */
+  nullcast?: boolean;
+  /** Discloses that the Tweet is a paid partnership. */
+  paid_partnership?: boolean;
   poll?: {
     duration_minutes: number;
     options: string[];
@@ -239,11 +298,22 @@ export interface TweetV2 {
   edit_controls?: EditControlsV2;
   possibly_sensitive?: boolean;
   lang?: string;
-  reply_settings?: 'everyone' | 'mentionedUsers' | 'following';
+  reply_settings?: TTweetReplySettingsV2;
   source?: string;
   note_tweet?: NoteTweetV2;
   community_id?: string;
   article?: TweetArticleV2;
+  card_uri?: string;
+  /** Start and end indexes of the part of `text` that is displayed. */
+  display_text_range?: [number, number];
+  paid_partnership?: boolean;
+  /** Only returned for promoted Tweets. */
+  scopes?: TweetScopesV2;
+  media_metadata?: TweetMediaMetadataV2[];
+  matched_media_notes?: TweetMatchedMediaNoteV2[];
+  note_request_suggestions?: TweetNoteRequestSuggestionV2[];
+  suggested_source_links?: string[];
+  suggested_source_links_with_counts?: TweetSuggestedSourceLinkV2[];
 }
 
 export interface ApiV2Includes {
