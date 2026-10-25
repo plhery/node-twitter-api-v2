@@ -85,6 +85,27 @@ export abstract class TwitterPaginator<TApiResult, TApiParams extends object, TI
 
   protected abstract canFetchNextPage(result: TApiResult): boolean;
 
+  /** `false` when there is nothing after the current page: the next request would only fetch the first page again. */
+  protected canRequestNextPage() {
+    return this.canFetchNextPage(this._realData);
+  }
+
+  /** The current page without its items, that `.next()` gives when there is nothing after it. */
+  protected getEmptyPage(): TApiResult {
+    if (Array.isArray(this._realData)) {
+      return [] as any;
+    }
+
+    // Keep the other fields, such as the cursor that marks the end
+    const page: any = { ...this._realData };
+    for (const key of Object.keys(page)) {
+      if (Array.isArray(page[key])) {
+        page[key] = [];
+      }
+    }
+    return page;
+  }
+
   /* Iterator methods */
   protected abstract getItemArray(): TItem[];
 
@@ -94,18 +115,30 @@ export abstract class TwitterPaginator<TApiResult, TApiParams extends object, TI
 
   /**
    * Next page.
+   * An empty page if there is no next page.
    */
   async next(maxResults?: number) {
     const queryParams = this.getNextQueryParams(maxResults);
+
+    if (!this.canRequestNextPage()) {
+      return this.makeNewInstanceFromResult({ data: this.getEmptyPage(), headers: {}, rateLimit: this._rateLimit }, queryParams);
+    }
+
     const result = await this.makeRequest(queryParams);
     return this.makeNewInstanceFromResult(result, queryParams);
   }
 
   /**
    * Next page, but store it in current instance.
+   * Does nothing if there is no next page.
    */
   async fetchNext(maxResults?: number) {
     const queryParams = this.getNextQueryParams(maxResults);
+
+    if (!this.canRequestNextPage()) {
+      return this;
+    }
+
     const result = await this.makeRequest(queryParams);
 
     // Await in case of async sub-methods
@@ -123,8 +156,8 @@ export abstract class TwitterPaginator<TApiResult, TApiParams extends object, TI
 
     let resultCount = 0;
 
-    // Break at rate limit limit
-    while (resultCount < count && this._isRateLimitOk) {
+    // Break at rate limit limit, or when there is no next page
+    while (resultCount < count && this._isRateLimitOk && this.canRequestNextPage()) {
       const response = await this.makeRequest(queryParams);
       await this.refreshInstanceFromResult(response, true);
 

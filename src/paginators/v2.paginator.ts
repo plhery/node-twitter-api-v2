@@ -32,15 +32,27 @@ export abstract class TwitterV2Paginator<
     const includesRealData = this._realData.includes;
 
     for (const [includeKey, includeArray] of Object.entries(data.includes) as [keyof any, any[]][]) {
-      if (!includesRealData[includeKey]) {
-        includesRealData[includeKey] = [];
-      }
+      const currentArray: any[] = includesRealData[includeKey] ?? [];
+      // Several pages can include the same user, tweet or media: keep only its first copy
+      const knownKeys = new Set(currentArray.map(item => item.media_key ?? item.id));
 
       includesRealData[includeKey] = [
-        ...includesRealData[includeKey]!,
-        ...includeArray,
+        ...currentArray,
+        ...includeArray.filter(item => {
+          const key = item.media_key ?? item.id;
+          if (key !== undefined && knownKeys.has(key)) {
+            return false;
+          }
+          knownKeys.add(key);
+          return true;
+        }),
       ];
     }
+  }
+
+  protected getEmptyPage() {
+    // What X sends when there is nothing more
+    return { meta: { result_count: 0 } } as TResult;
   }
 
   /** Throw if the current paginator is not usable. */

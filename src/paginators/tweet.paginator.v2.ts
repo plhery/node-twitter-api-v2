@@ -91,6 +91,11 @@ abstract class TweetTimelineV2Paginator<
     return !!result.meta.next_token;
   }
 
+  protected canRequestNextPage() {
+    // Without next_token, older tweets are still asked with until_id
+    return this.canFetchNextPage(this._realData) || !!this._realData.meta.oldest_id;
+  }
+
   protected getItemArray() {
     return this.tweets;
   }
