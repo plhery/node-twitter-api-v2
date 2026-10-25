@@ -14,6 +14,7 @@ import TwitterApiv1ReadOnly from '../v1/client.v1.read';
 import TwitterApiv2ReadOnly from '../v2/client.v2.read';
 import { OAuth2Helper } from '../client-mixins/oauth2.helper';
 import RequestParamHelpers from '../client-mixins/request-param.helper';
+import { TwitterApiV2Settings } from '../settings';
 
 /**
  * Twitter v1.1 and v2 API client.
@@ -112,7 +113,7 @@ export default class TwitterApiReadOnly extends TwitterApiBase {
     }
 
     if (this._requestMaker.hasPlugins()) {
-      this._requestMaker.applyPluginMethod('onOAuth1RequestToken', {
+      await this._requestMaker.applyPluginMethod('onOAuth1RequestToken', {
         client: this._requestMaker,
         url,
         oauthResult,
@@ -256,11 +257,12 @@ export default class TwitterApiReadOnly extends TwitterApiBase {
     };
 
     if (this._requestMaker.hasPlugins()) {
+      // This method is sync, so it can't wait for the hooks: log their errors instead of leaving an unhandled rejection
       this._requestMaker.applyPluginMethod('onOAuth2RequestToken', {
         client: this._requestMaker,
         result,
         redirectUri,
-      });
+      }).catch(error => TwitterApiV2Settings.logger.log('onOAuth2RequestToken plugin hook failed:', error));
     }
 
     return result;

@@ -37,9 +37,9 @@ interface ITwitterApiClientPlugin {
   /* Executed when a stream request is about to be prepared. This method **can't** return a `Promise`. */
   onBeforeStreamRequestConfig?: TTwitterApiBeforeStreamRequestConfigHook
   // Request token
-  /* Executed after a `.generateAuthLink`, mainly to allow automatic collect of `oauth_token`/`oauth_token_secret` couples.  */
+  /* Executed after a `.generateAuthLink`, mainly to allow automatic collect of `oauth_token`/`oauth_token_secret` couples. `.generateAuthLink` waits for it, and rejects if it fails. */
   onOAuth1RequestToken?: TTwitterApiAfterOAuth1RequestTokenHook
-  /* Executed after a `.generateOAuth2AuthLink`, mainly to allow automatic collect of `state`/`codeVerifier` couples.  */
+  /* Executed after a `.generateOAuth2AuthLink`, mainly to allow automatic collect of `state`/`codeVerifier` couples. `.generateOAuth2AuthLink` is sync: it doesn't wait for a returned `Promise`, and only logs an error of the hook with `TwitterApiV2Settings.logger`. */
   onOAuth2RequestToken?: TTwitterApiAfterOAuth2RequestTokenHook
 }
 ```
