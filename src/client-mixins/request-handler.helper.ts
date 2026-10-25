@@ -1,4 +1,3 @@
-import type { Socket } from 'net';
 import { request } from 'https';
 import type { IncomingMessage, ClientRequest } from 'http';
 import { TwitterApiV2Settings } from '../settings';
@@ -8,7 +7,6 @@ import type { ErrorV1, ErrorV2, TwitterRateLimit, TwitterResponse } from '../typ
 import type { TRequestFullData, TRequestFullStreamData, TResponseParseMode } from '../types/request-maker.mixin.types';
 import * as zlib from 'zlib';
 import { pipeline, Readable } from 'stream';
-import { EventEmitter } from 'events';
 
 type TRequestReadyPayload = { req: ClientRequest, res: Readable, originalResponse: IncomingMessage, requestData: TRequestFullData | TRequestFullStreamData };
 type TReadyRequestResolver = (value: TRequestReadyPayload) => void;
@@ -26,7 +24,6 @@ interface IBuildErrorParams {
 export class RequestHandlerHelper<T> {
   protected req!: ClientRequest;
   protected res!: IncomingMessage;
-  protected requestErrorHandled = false;
   protected responseData: Buffer[] = [];
 
   constructor(protected requestData: TRequestFullData | TRequestFullStreamData) {}
@@ -231,37 +228,13 @@ export class RequestHandlerHelper<T> {
 
   /* Request event handlers */
 
-  protected onSocketEventHandler(reject: TRequestRejecter, cleanupListener: EventEmitter, socket: Socket) {
-    const onClose = this.onSocketCloseHandler.bind(this, reject);
-
-    socket.on('close', onClose);
-    cleanupListener.on('complete', () => socket.off('close', onClose));
-  }
-
-  protected onSocketCloseHandler(reject: TRequestRejecter) {
-    this.req.removeAllListeners('timeout');
-    const res = this.res;
-
-    if (res) {
-      // Response ok, res.close/res.end can handle request ending
-      return;
-    }
-    if (!this.requestErrorHandled) {
-      return reject(this.createRequestError(new Error('Socket closed without any information.')));
-    }
-
-    // else: other situation
-  }
-
   protected requestErrorHandler(reject: TRequestRejecter, requestError: Error) {
     this.requestData.requestEventDebugHandler?.('request-error', { requestError });
 
-    this.requestErrorHandled = true;
     reject(this.createRequestError(requestError));
   }
 
   protected timeoutErrorHandler() {
-    this.requestErrorHandled = true;
     this.req.destroy(new Error('Request timeout.'));
   }
 
@@ -432,24 +405,11 @@ export class RequestHandlerHelper<T> {
   makeRequest() {
     this.buildRequest();
 
-    return new Promise<TwitterResponse<T>>((_resolve, _reject) => {
-      // Hooks to call when promise is fulfulled to cleanup the socket (shared between requests)
-      const resolve: typeof _resolve = value => {
-        cleanupListener.emit('complete');
-        _resolve(value);
-      };
-      const reject: typeof _reject = value => {
-        cleanupListener.emit('complete');
-        _reject(value);
-      };
-
-      const cleanupListener = new EventEmitter();
+    return new Promise<TwitterResponse<T>>((resolve, reject) => {
       const req = this.req;
 
-      // Handle request errors
+      // Handle request errors. Node also emits 'error' when the socket closes before a response
       req.on('error', this.requestErrorHandler.bind(this, reject));
-
-      req.on('socket', this.onSocketEventHandler.bind(this, reject, cleanupListener));
 
       req.on('response', this.classicResponseHandler.bind(this, resolve, reject));
 

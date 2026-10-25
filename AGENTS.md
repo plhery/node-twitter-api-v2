@@ -13,7 +13,7 @@ twitter-api-v2: a strongly typed Twitter/X API v1.1 and v2 client for Node.js, p
 
 - `npm run lint` and `npm run build` must pass. CI runs both, then `npm test`, on every push.
 - Most test files call the real X API. They need `CONSUMER_TOKEN`, `CONSUMER_SECRET`, `OAUTH_TOKEN` and `OAUTH_SECRET` (in `.env`), throw at import without them, and some calls are billed.
-- These test files run offline, without credentials: `helpers`, `oauth-helpers`, `rate-limit`, `stream.decoding`, `paginator.v2`, `media.v2`. Run them with `npm run mocha test/<name>.test.ts`. For new behaviour, prefer offline tests like these: a fake `instance.get` for paginators, a fake response stream for `TweetStream`, a fake `client.post` for requests.
+- These test files run offline, without credentials: `helpers`, `oauth-helpers`, `rate-limit`, `stream.decoding`, `paginator.v2`, `media.v2`, `request-handler`, `request-handler.socket`. Run them with `npm run mocha test/<name>.test.ts`. For new behaviour, prefer offline tests like these: a fake `instance.get` for paginators, a fake response stream for `TweetStream`, a fake `client.post` for requests, a local `http` server for the request handler (`https.request` accepts plain HTTP through an `http.Agent`).
 - Mocha 10 does not start on Node 26. Use Node 24, which is what CI uses.
 
 ## Commits and pull requests
