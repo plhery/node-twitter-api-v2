@@ -63,21 +63,14 @@ Please see [Authentication part](./auth.md) of the doc.
 
 ### Get current user
 
-#### v1 API
-
-If you want to access currently the logged user inside v1 API (= you're logged with OAuth 1.0a/OAuth2 user-context),
-you can use the method `.currentUser()`.
-
-This a shortcut to `.v1.verifyCredentials()` with a **cache that store user to avoid multiple API calls**.
-Its returns a `UserV1` object.
-
-#### v2 API
-
-If you want to access the currently logged user inside v2 API,
+If you want to access the currently logged user (= you're logged with OAuth 1.0a/OAuth2 user-context),
 you can use the method `.currentUserV2()`.
 
 This a shortcut to `.v2.me()` with a **cache that store user to avoid multiple API calls**.
 Its returns a `UserV2Result` object.
+
+`.currentUser()`, its v1 counterpart that returns a `UserV1` object, is deprecated:
+it calls the v1.1 `account/verify_credentials` endpoint, which new X API apps can't use.
 
 ## Use the versioned API clients - URL prefixes
 
@@ -87,15 +80,13 @@ For this reason, we allow you to choose which version you want to use: `v1` or `
 ```ts
 const v1Client = client.v1;
 const v2Client = client.v2;
-
-// We also think of users who test v2 labs endpoints :)
-const v2LabsClient = client.v2.labs;
 ```
 
 Using the versioned client **auto-prefix requests** with default prefixes
-(for v1: `https://api.x.com/1.1/`, for v2: `https://api.x.com/2/`,
-for labs v2: `https://api.x.com/labs/2/`)
+(for v1: `https://api.x.com/1.1/`, for v2: `https://api.x.com/2/`)
 and this gives you access to endpoint-wrapper methods!
+
+X no longer serves most v1.1 endpoints on its current API plans, so most `v1` methods are deprecated: prefer `v2`.
 
 ## Use the endpoint-wrapper methods
 

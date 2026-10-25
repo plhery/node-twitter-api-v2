@@ -26,10 +26,10 @@ console.log(currentRateLimitForMe.remaining) // 74
 If you use a HTTP method helper (`.get`, `.post`, ...), you can get a **full response** object that directly contains the rate limit information,
 even if the request didn't fail!
 ```ts
-const manualFullResponse = await client.v1.get<TweetV1TimelineResult>('statuses/home_timeline.json', { since_id: '20' }, { fullResponse: true });
+const manualFullResponse = await client.v2.get<Tweetv2SearchResult>('tweets/search/recent', { query: 'nodeJS' }, { fullResponse: true });
 
 // Response data
-manualFullResponse.data; // TweetV1TimelineResult
+manualFullResponse.data; // Tweetv2SearchResult
 // Rate limit information
 manualFullResponse.rateLimit; // { limit: number, remaining: number, reset: number }
 // Optional daily limits
@@ -98,6 +98,6 @@ The `.fetchLast` or iteration will automatically ends when rate limit is hit.
 
 Moreover, you can access current rate limit status for paginator's endpoint with the `.rateLimit` getter.
 ```ts
-const paginator = await client.v1.homeTimeline();
+const paginator = await client.v2.homeTimeline();
 console.log(paginator.rateLimit); // { limit: number, remaining: number, reset: number }
 ```

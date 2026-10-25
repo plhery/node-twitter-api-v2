@@ -189,11 +189,11 @@ Get returned errors in a thrown `TwitterApiError` object.
 **Example**
 ```ts
 try {
-  const homeTimeline = await client.v1.homeTimeline({ exclude_replies: true });
+  const homeTimeline = await client.v2.homeTimeline({ exclude: 'replies' });
 } catch (e) {
   // Request failed!
-  const errors = TwitterApi.getErrors(e); // ErrorV1[]
-  console.log('Received errors from v1 API', errors);
+  const errors = TwitterApi.getErrors(e); // (ErrorV1 | ErrorV2)[]
+  console.log('Received errors from the API', errors);
 }
 ```
 
@@ -211,10 +211,10 @@ Extract another image size than obtained in `profile_image_url` or `profile_imag
 
 **Example**
 ```ts
-const user = await client.currentUser();
+const { data: user } = await client.v2.me({ 'user.fields': ['profile_image_url'] });
 
 // Original profile img link
-const originalProfileImage = TwitterApi.getProfileImageInSize(user.profile_image_url_https, 'original');
+const originalProfileImage = TwitterApi.getProfileImageInSize(user.profile_image_url!, 'original');
 ```
 
 ## Remove undefined properties from objects

@@ -47,9 +47,9 @@ If you want to debug a single request made through direct HTTP handlers `.get`/`
 you can use an additional property named `requestEventDebugHandler`.
 
 ```ts
-client.v1.get(
-  'statuses/user_timeline.json',
-  { user_id: 10, count: 200 },
+client.v2.get(
+  'tweets/search/recent',
+  { query: 'nodeJS', max_results: 100 },
   { requestEventDebugHandler: (eventType, data) => console.log('Event', eventType, 'with data', data) },
 )
 ```
