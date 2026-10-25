@@ -85,6 +85,20 @@ describe('v2 media upload (offline, no network or credentials needed)', () => {
     }
   });
 
+  it('Should report the progress after each uploaded chunk', async () => {
+    const { client, calls } = makeFakeClient();
+    const progress: number[][] = [];
+
+    await client.uploadMedia(content, {
+      media_type: 'image/png',
+      onProgress: (uploadedBytes, totalBytes) => progress.push([uploadedBytes, totalBytes, appendedChunks(calls).length]),
+    }, 1024);
+
+    // [uploaded bytes, total bytes, chunks sent so far]
+    expect(progress).to.deep.equal([[1024, 2500, 1], [2048, 2500, 2], [2500, 2500, 3]]);
+    expect(calls[0].body).not.to.have.property('onProgress');
+  });
+
   it('Should fail before calling X when the file does not exist', async () => {
     const { client, calls } = makeFakeClient();
 
