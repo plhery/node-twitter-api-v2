@@ -1,3 +1,16 @@
+1.31.0
+------
+- docs: fix wrong snippets, add a credentials guide and common errors #654 (@plhery)
+- fix(stream): close() stops pending reconnections, for await survives reconnections #655 (@plhery)
+- feat(v2): missing common endpoints and OAuth 1.0a token exchange #656 (@plhery)
+- fix(paginators): stop at the last page, and dedupe merged includes #651 (@plhery)
+- feat(types): bring the v2 types up to date with X's docs #653 (@plhery)
+- fix(errors): match v2 problem types, explain X's errors, reject cut responses #652 (@plhery)
+- fix(client): retry a failed current user fetch, plugin hook errors, cloneWithPrefix() #650 (@plhery)
+- fix: TwitterApiReadOnly and TwitterApiReadWrite named imports crashed on Node 22 #649 (@plhery)
+- fix: encode URL parameters, so that an ID can't change the endpoint #648 (@plhery)
+- test: a fake X API for offline tests, CI on pull requests #647 (@plhery)
+
 1.30.0
 ------
 - fix(paginators): v1 searchUsers fetchNext() and fetchLast() kept asking for page 2 #644 (@plhery)
